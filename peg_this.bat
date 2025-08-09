@@ -22,7 +22,7 @@ if not exist "ffprobe.exe" (
 :main_menu
 cls
 echo ===============================================
-echo          Enhanced Media Converter
+echo          ffmpeg-this
 echo ===============================================
 echo.
 echo 1. Select a Media File to Process

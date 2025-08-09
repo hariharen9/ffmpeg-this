@@ -1,4 +1,3 @@
-
 name: Create Release and Build Binaries
 
 on:
@@ -18,11 +17,11 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         include:
           - os: ubuntu-latest
-            asset_name: av-converter-linux
+            asset_name: ffmpeg-this-linux
           - os: macos-latest
-            asset_name: av-converter-macos
+            asset_name: ffmpeg-this-macos
           - os: windows-latest
-            asset_name: av-converter-windows.exe
+            asset_name: ffmpeg-this-windows.exe
 
     steps:
     - name: Check out code
@@ -40,7 +39,7 @@ jobs:
         pip install pyinstaller
 
     - name: Build with PyInstaller
-      run: pyinstaller --onefile --name "${{ matrix.asset_name }}" converter.py
+      run: pyinstaller --onefile --name "${{ matrix.asset_name }}" peg_this.py
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -70,6 +69,6 @@ jobs:
           --repo="$GITHUB_REPOSITORY" \
           --title="${{ github.ref_name }}" \
           --generate-notes
-        gh release upload "$tag" artifacts/av-converter-linux/av-converter-linux
-        gh release upload "$tag" artifacts/av-converter-macos/av-converter-macos
-        gh release upload "$tag" artifacts/av-converter-windows.exe/av-converter-windows.exe
+        gh release upload "$tag" artifacts/ffmpeg-this-linux/ffmpeg-this-linux
+        gh release upload "$tag" artifacts/ffmpeg-this-macos/ffmpeg-this-macos
+        gh release upload "$tag" artifacts/ffmpeg-this-windows.exe/ffmpeg-this-windows.exe

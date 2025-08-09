@@ -319,7 +319,7 @@ def main_menu():
     """Display the main menu."""
     check_ffmpeg_ffprobe()
     while True:
-        console.rule("[bold magenta]Enhanced Media Converter[/bold magenta]")
+        console.rule("[bold magenta]ffmpeg-this[/bold magenta]")
         choice = questionary.select(
             "What would you like to do?",
             choices=[

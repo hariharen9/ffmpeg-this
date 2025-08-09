@@ -1,4 +1,4 @@
-# 🎬 AV Converter
+# 🎬 ffmPEG-this
 
 A powerful and user-friendly batch script for converting, manipulating, and inspecting media files using the power of FFmpeg. This script provides a simple command-line menu to perform common audio and video tasks without needing to memorize complex FFmpeg commands.
 
@@ -21,7 +21,7 @@ A powerful and user-friendly batch script for converting, manipulating, and insp
 
 ### Installation
 
-1.  Go to the [**Releases**](https://github.com/hariharen9/av-converter/releases/latest) page.
+1.  Go to the [**Releases**](https://github.com/hariharen9/ffmpeg-this/releases/latest) page.
 2.  Download the executable for your operating system (Windows, macOS, or Linux).
 3.  Place the downloaded file in a directory with your media files.
 4.  Run the executable directly from your terminal or command prompt.
@@ -31,15 +31,15 @@ A powerful and user-friendly batch script for converting, manipulating, and insp
 Run the application from your terminal to launch the interactive menu.
 
 ```
-$ ./av-converter-linux
+$ ./ffmpeg-this
 ```
 
 You will be greeted with the main menu, where you can select a file to process or perform a batch conversion.
 
 ```
-===============================================
-         Enhanced Media Converter
-===============================================
+==============================================
+         ffmpeg-this
+==============================================
 
 1. Select a Media File to Process
 2. Batch Convert All Videos to a Format
@@ -68,8 +68,8 @@ If you prefer to run the script directly or build it yourself:
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/hariharen9/av-converter.git
-    cd av-converter
+    git clone https://github.com/hariharen9/ffmpeg-this.git
+    cd ffmpeg-this
     ```
 2.  **Install dependencies:**
     ```bash
@@ -77,13 +77,13 @@ If you prefer to run the script directly or build it yourself:
     ```
 3.  **Run the script:**
     ```bash
-    python converter.py
+    python peg_this.py
     ```
 4.  **(Optional) Build the executable:**
     To create the standalone executable, use PyInstaller:
     ```bash
     pip install pyinstaller
-    pyinstaller --onefile --name "av-converter" converter.py
+    pyinstaller --onefile --name "ffmpeg-this" peg_this.py
     ```
 
 
