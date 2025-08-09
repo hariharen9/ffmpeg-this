@@ -2,8 +2,6 @@
 
 A powerful and user-friendly batch script for converting, manipulating, and inspecting media files using the power of FFmpeg. This script provides a simple command-line menu to perform common audio and video tasks without needing to memorize complex FFmpeg commands.
 
-![Main Menu](https://i.imgur.com/rGZ3k4D.png)
-
 ## ✨ Features
 
 - **Action-Oriented Menu:** Select a file, then choose from a list of available actions.
