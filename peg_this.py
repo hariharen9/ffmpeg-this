@@ -5,6 +5,12 @@ from pathlib import Path
 import sys
 
 try:
+    import tkinter as tk
+    from tkinter import filedialog
+except ImportError:
+    tk = None
+
+try:
     import questionary
     from rich.console import Console
     from rich.table import Table
@@ -99,11 +105,23 @@ def get_media_files():
 
 
 def select_media_file():
-    """Display a menu to select a media file."""
+    """Display a menu to select a media file, or open a file picker if none are found."""
     media_files = get_media_files()
     if not media_files:
         console.print("[bold yellow]No media files found in this directory.[/bold yellow]")
-        return None
+        if tk and questionary.confirm("Would you like to select a file from another location?").ask():
+            root = tk.Tk()
+            root.withdraw()  # Hide the main window
+            file_path = filedialog.askopenfilename(
+                title="Select a media file",
+                filetypes=[
+                    ("Media Files", "*.mkv *.mp4 *.avi *.mov *.webm *.flv *.wmv *.mp3 *.flac *.wav *.ogg"),
+                    ("All Files", "*.*")
+                ]
+            )
+            return file_path
+        else:
+            return None
 
     file = questionary.select(
         "Select a media file to process:",
@@ -190,6 +208,7 @@ def convert_lossless(file_path):
     run_command(command, f"Converting to {output_format}...", show_progress=True)
     console.print(f"[bold green]Successfully converted to {output_file}[/bold green]")
     questionary.press_any_key_to_continue().ask()
+
 
 def convert_lossy(file_path):
     """Re-encode a video to a smaller file size."""
@@ -319,7 +338,7 @@ def main_menu():
     """Display the main menu."""
     check_ffmpeg_ffprobe()
     while True:
-        console.rule("[bold magenta]ffmpeg-this[/bold magenta]")
+        console.rule("[bold magenta]ffmPEG-this[/bold magenta]")
         choice = questionary.select(
             "What would you like to do?",
             choices=[
