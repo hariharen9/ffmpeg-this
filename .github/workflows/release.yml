@@ -6,6 +6,9 @@ on:
     tags:
       - 'v*' # Trigger on tags like v1.0, v2.1, etc.
 
+permissions: 
+  contents: write
+
 jobs:
   build:
     name: Build for ${{ matrix.os }}
@@ -23,7 +26,7 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -40,7 +43,7 @@ jobs:
       run: pyinstaller --onefile --name "${{ matrix.asset_name }}" converter.py
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.asset_name }}
         path: dist/${{ matrix.asset_name }}
@@ -50,51 +53,20 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-    - name: Get tag name
-      id: get_tag
-      run: echo ::set-output name=TAG_NAME::${GITHUB_REF#refs/tags/}
-
-    - name: Create GitHub Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.get_tag.outputs.TAG_NAME }}
-        release_name: Release ${{ steps.get_tag.outputs.TAG_NAME }}
-        body: "Automated release for version ${{ steps.get_tag.outputs.TAG_NAME }}"
-        draft: false
-        prerelease: false
-
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: artifacts
 
-    - name: Upload Release Assets
-      uses: actions/upload-release-asset@v1
+    - name: Create Release and Upload Assets
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/av-converter-linux/av-converter-linux
-        asset_name: av-converter-linux
-        asset_content_type: application/octet-stream
-    - name: Upload Release Assets
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/av-converter-macos/av-converter-macos
-        asset_name: av-converter-macos
-        asset_content_type: application/octet-stream
-    - name: Upload Release Assets
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/av-converter-windows.exe/av-converter-windows.exe
-        asset_name: av-converter-windows.exe
-        asset_content_type: application/octet-stream
+        tag: ${{ github.ref_name }}
+      run: |
+        gh release create "$tag" \
+          --repo="$GITHUB_REPOSITORY" \
+          --title="${{ github.ref_name }}" \
+          --generate-notes
+        gh release upload "$tag" artifacts/av-converter-linux/av-converter-linux
+        gh release upload "$tag" artifacts/av-converter-macos/av-converter-macos
+        gh release upload "$tag" artifacts/av-converter-windows.exe/av-converter-windows.exe
