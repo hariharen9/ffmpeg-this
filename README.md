@@ -17,18 +17,24 @@ A powerful and user-friendly batch script for converting, manipulating, and insp
 
 ### Prerequisites
 
-- [FFmpeg](https://ffmpeg.org/download.html) must be downloaded and the executables (`ffmpeg.exe`, `ffprobe.exe`) must be in the same directory as the script.
+- **FFmpeg**: Must be installed and accessible in your system's PATH, or the `ffmpeg` and `ffprobe` executables must be placed in the same directory as the converter.
 
 ### Installation
 
-1.  Download the `enhanced_converter.bat` script from the [latest release](https://github.com/hariharen9/av-converter/releases/latest).
-2.  Place the script in the same directory as `ffmpeg.exe` and `ffprobe.exe`.
-3.  Add any media files you want to process into the same directory.
-4.  Run `enhanced_converter.bat` by double-clicking it or by running it from the command line.
+1.  Go to the [**Releases**](https://github.com/hariharen9/av-converter/releases/latest) page.
+2.  Download the executable for your operating system (Windows, macOS, or Linux).
+3.  Place the downloaded file in a directory with your media files.
+4.  Run the executable directly from your terminal or command prompt.
 
 ## 💻 Usage
 
-Once the script is running, you will be presented with a main menu.
+Run the application from your terminal to launch the interactive menu.
+
+```
+$ ./av-converter-linux
+```
+
+You will be greeted with the main menu, where you can select a file to process or perform a batch conversion.
 
 ```
 ===============================================
@@ -40,7 +46,7 @@ Once the script is running, you will be presented with a main menu.
 3. Exit
 ```
 
-Simply choose an option and follow the on-screen prompts. When you select a file, you'll see the action menu:
+After selecting a file, a rich, interactive menu will display detailed information and offer a variety of actions:
 
 ```
 ===============================================
@@ -55,6 +61,31 @@ Simply choose an option and follow the on-screen prompts. When you select a file
 6. Remove Audio
 ...
 ```
+
+## 🛠️ Building from Source
+
+If you prefer to run the script directly or build it yourself:
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/hariharen9/av-converter.git
+    cd av-converter
+    ```
+2.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+3.  **Run the script:**
+    ```bash
+    python converter.py
+    ```
+4.  **(Optional) Build the executable:**
+    To create the standalone executable, use PyInstaller:
+    ```bash
+    pip install pyinstaller
+    pyinstaller --onefile --name "av-converter" converter.py
+    ```
+
 
 ## 📄 License
 
