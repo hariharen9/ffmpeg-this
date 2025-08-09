@@ -1,0 +1,38 @@
+# Build artifacts from PyInstaller
+/dist/
+/build/
+*.spec
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Media Files (Video)
+*.mkv
+*.mp4
+*.avi
+*.mov
+*.webm
+*.flv
+*.wmv
+*.mpeg
+*.mpg
+*.m4v
+*.ts
+*.vob
+
+# Media Files (Audio)
+*.mp3
+*.flac
+*.wav
+*.ogg
+*.aac
+*.wma
+*.m4a
+*.opus
+
+# OS-specific files
+.DS_Store
+Thumbs.db
