@@ -26,6 +26,29 @@ A powerful and user-friendly batch script for converting, manipulating, and insp
 3.  Place the downloaded file in a directory with your media files.
 4.  Run the executable directly from your terminal or command prompt.
 
+### Easiest Way to Get Started (Recommended for Most Users)
+
+For the quickest and most straightforward experience, especially if you're new to command-line tools or prefer a direct approach:
+
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/hariharen9/ffmpeg-this.git
+    cd ffmpeg-this
+    ```
+2.  **Place Your Media Files:** Copy or move the video/audio files you wish to process directly into this `ffmpeg-this` directory.
+3.  **Run the Python Script (Cross-Platform):**
+    ```bash
+    python peg_this.py
+    ```
+    This will launch the interactive menu, allowing you to select files and perform operations with a modern, user-friendly interface.
+
+4.  **Alternatively, Use the Batch Script (Windows Only):**
+    If you are on Windows and prefer a simpler, direct executable feel without needing to explicitly run Python:
+    ```bash
+    peg_this.bat
+    ```
+    This will also launch an interactive menu, providing similar functionalities directly from the batch file.
+
 ## 💻 Usage
 
 Run the application from your terminal to launch the interactive menu.
@@ -62,7 +85,7 @@ After selecting a file, a rich, interactive menu will display detailed informati
 ...
 ```
 
-## 🛠️ Building from Source
+## 🛠️ Building executable from Source
 
 If you prefer to run the script directly or build it yourself:
 
