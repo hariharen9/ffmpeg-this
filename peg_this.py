@@ -197,7 +197,7 @@ def convert_lossless(file_path):
     """Convert a file to a different container without re-encoding."""
     output_format = questionary.select(
         "Select output format:",
-        choices=["mp4", "mkv", "mov"],
+        choices=["mp4", "mkv", "mov", "avi", "webm"],
         use_indicator=True
     ).ask()
 
@@ -271,15 +271,47 @@ def remove_audio(file_path):
     console.print(f"[bold green]Successfully removed audio, saved to {output_file}[/bold green]")
     questionary.press_any_key_to_continue().ask()
 
+def convert_to_gif(file_path):
+    """Convert a video file to a high-quality GIF."""
+    fps = questionary.text("Enter frame rate (e.g., 15):", default="15").ask()
+    if not fps: return
+
+    scale = questionary.text("Enter width in pixels (e.g., 480):", default="480").ask()
+    if not scale: return
+
+    output_file = f"{Path(file_path).stem}.gif"
+    palette_file = "palette.png"
+
+    palette_command = f'ffmpeg -i "{file_path}" -vf "fps={fps},scale={scale}:-1:flags=lanczos,palettegen" -y "{palette_file}"'
+    run_command(palette_command, "Generating color palette...")
+
+    gif_command = f'ffmpeg -i "{file_path}" -i "{palette_file}" -filter_complex "[0:v]fps={fps},scale={scale}:-1:flags=lanczos[x];[x][1:v]paletteuse" -y "{output_file}"'
+    run_command(gif_command, f"Converting to GIF at {fps}fps...", show_progress=True)
+
+    try:
+        os.remove(palette_file)
+    except OSError as e:
+        console.print(f"[bold red]Error removing palette file {palette_file}: {e}[/bold red]")
+
+    console.print(f"[bold green]Successfully created GIF: {output_file}[/bold green]")
+    questionary.press_any_key_to_continue().ask()
+
 def batch_convert():
     """Convert all video files in the directory to a specific format."""
     output_format = questionary.select(
         "Select output format for the batch conversion:",
-        choices=["mp4", "mkv", "mov"],
+        choices=["mp4", "mkv", "mov", "avi", "webm", "gif"],
         use_indicator=True
     ).ask()
 
     if not output_format: return
+
+    if output_format == 'gif':
+        fps = questionary.text("Enter frame rate (e.g., 15):", default="15").ask()
+        if not fps: return
+
+        scale = questionary.text("Enter width in pixels (e.g., 480):", default="480").ask()
+        if not scale: return
 
     confirm = questionary.confirm(
         f"This will convert ALL video files in the current directory to .{output_format}. Are you sure?",
@@ -294,9 +326,25 @@ def batch_convert():
     files_to_convert = [f for f in os.listdir('.') if os.path.isfile(f) and Path(f).suffix.lower() in video_extensions]
 
     for file in files_to_convert:
-        output_file = f"{Path(file).stem}_batch.{output_format}"
-        command = f'ffmpeg -i "{file}" -map 0 -c copy -c:s mov_text "{output_file}"'
-        run_command(command, f"Converting {file}...", show_progress=True)
+        if output_format == 'gif':
+            output_file = f"{Path(file).stem}_batch.gif"
+            palette_file = f"palette_{Path(file).stem}.png"
+
+            palette_command = f'ffmpeg -i "{file}" -vf "fps={fps},scale={scale}:-1:flags=lanczos,palettegen" -y "{palette_file}"'
+            run_command(palette_command, f"Generating color palette for {file}...")
+
+            gif_command = f'ffmpeg -i "{file}" -i "{palette_file}" -filter_complex "[0:v]fps={fps},scale={scale}:-1:flags=lanczos[x];[x][1:v]paletteuse" -y "{output_file}"'
+            run_command(gif_command, f"Converting {file} to GIF...", show_progress=True)
+
+            try:
+                os.remove(palette_file)
+            except OSError as e:
+                console.print(f"[bold red]Error removing palette file {palette_file}: {e}[/bold red]")
+        else:
+            output_file = f"{Path(file).stem}_batch.{output_format}"
+            command = f'ffmpeg -i "{file}" -map 0 -c copy -c:s mov_text "{output_file}"'
+            run_command(command, f"Converting {file}...", show_progress=True)
+
         console.print(f"  -> Saved as {output_file}")
 
     console.print("\n[bold green]Batch conversion finished.[/bold green]")
@@ -312,6 +360,7 @@ def action_menu(file_path):
                 "Inspect File Details",
                 "Convert (Lossless)",
                 "Convert (Smaller File Size)",
+                "Convert to GIF",
                 "Trim Video",
                 "Extract Audio",
                 "Remove Audio",
@@ -328,6 +377,7 @@ def action_menu(file_path):
             "Inspect File Details": inspect_file,
             "Convert (Lossless)": convert_lossless,
             "Convert (Smaller File Size)": convert_lossy,
+            "Convert to GIF": convert_to_gif,
             "Trim Video": trim_video,
             "Extract Audio": extract_audio,
             "Remove Audio": remove_audio,

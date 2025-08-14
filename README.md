@@ -6,7 +6,7 @@ A powerful and user-friendly batch script for converting, manipulating, and insp
 
 - **Action-Oriented Menu:** Select a file, then choose from a list of available actions.
 - **File Inspection:** View detailed information about a media file, including resolution, duration, size, and stream details.
-- **Lossless Conversion:** Change a file's container format (e.g., MKV to MP4) without re-encoding, preserving the original quality.
+- **Lossless Conversion:** Change a file's container format (e.g., **MKV to MP4, , MP4 to GIF** etc.) without re-encoding, preserving the original quality.
 - **Lossy Conversion:** Re-encode video to reduce file size, with simple quality presets.
 - **Video Trimming:** Cut a video by specifying a start and end time.
 - **Audio Extraction:** Extract the audio from a video file into formats like MP3, FLAC, or WAV.
