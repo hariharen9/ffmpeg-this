@@ -708,7 +708,8 @@ def main_menu():
             batch_convert()
 
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for the application script."""
     try:
         main_menu()
     except (KeyboardInterrupt, EOFError):
@@ -718,3 +719,6 @@ if __name__ == "__main__":
         logging.exception("An unexpected error occurred.")
         console.print(f"[bold red]An unexpected error occurred: {e}[/bold red]")
         console.print(f"Details have been logged to {log_file}")
+
+if __name__ == "__main__":
+    main()
