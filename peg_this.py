@@ -3,10 +3,13 @@ import subprocess
 import json
 from pathlib import Path
 import sys
+import random
+import logging
 
 try:
     import tkinter as tk
-    from tkinter import filedialog
+    from tkinter import filedialog, messagebox
+    from PIL import Image, ImageTk
 except ImportError:
     tk = None
 
@@ -19,6 +22,18 @@ except ImportError:
     print("Required libraries not found. Please install them by running:")
     print("pip install questionary rich")
     sys.exit(1)
+
+# Configure logging
+log_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "ffmpeg_log.txt")
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),
+        # You can also add a handler to print to console, for development
+        # logging.StreamHandler()
+    ]
+)
 
 console = Console()
 
@@ -350,6 +365,112 @@ def batch_convert():
     console.print("\n[bold green]Batch conversion finished.[/bold green]")
     questionary.press_any_key_to_continue().ask()
 
+def crop_video(file_path):
+    """Visually crop a video by selecting an area."""
+    logging.info(f"Starting crop_video for {file_path}")
+    if not tk:
+        logging.error("Cannot perform cropping: tkinter/Pillow is not installed.")
+        console.print("[bold red]Cannot perform cropping: tkinter/Pillow is not installed.[/bold red]")
+        return
+
+    try:
+        # Extract a frame from the middle of the video for preview
+        info_command = f'ffprobe -v quiet -print_format json -show_streams "{file_path}"'
+        logging.info(f"Running ffprobe to get video info: {info_command}")
+        info_json = run_command(info_command)
+        if not info_json:
+            logging.error("ffprobe failed to get video info.")
+            return
+
+        info = json.loads(info_json)
+        duration = float(info['streams'][0].get('duration', '0'))
+        mid_point = duration / 2
+        logging.info(f"Video duration: {duration}s, selected mid-point for frame: {mid_point}s")
+        
+        preview_frame = "preview.jpg"
+        frame_command = f'ffmpeg -ss {mid_point} -i "{file_path}" -vframes 1 -q:v 2 "{preview_frame}" -y'
+        logging.info(f"Running ffmpeg to extract frame: {frame_command}")
+        run_command(frame_command, "Extracting a frame for preview...")
+
+        if not os.path.exists(preview_frame):
+            logging.error(f"Could not extract preview frame. File not found: {preview_frame}")
+            console.print("[bold red]Could not extract a frame from the video.[/bold red]")
+            return
+        logging.info(f"Successfully extracted preview frame to {preview_frame}")
+
+        # --- Tkinter GUI for Cropping ---
+        root = tk.Tk()
+        root.title("Crop Video - Drag to select area, close window to confirm")
+        root.attributes("-topmost", True)
+
+        img = Image.open(preview_frame)
+        logging.info(f"Opened preview image with dimensions: {img.width}x{img.height}")
+        img_tk = ImageTk.PhotoImage(img)
+
+        canvas = tk.Canvas(root, width=img.width, height=img.height, cursor="cross")
+        canvas.pack()
+        canvas.create_image(0, 0, anchor=tk.NW, image=img_tk)
+
+        rect_coords = {"x1": 0, "y1": 0, "x2": 0, "y2": 0}
+        rect_id = None
+
+        def on_press(event):
+            nonlocal rect_id
+            rect_coords['x1'] = event.x
+            rect_coords['y1'] = event.y
+            rect_id = canvas.create_rectangle(0, 0, 1, 1, outline='red', width=2)
+
+        def on_drag(event):
+            nonlocal rect_id
+            rect_coords['x2'] = event.x
+            rect_coords['y2'] = event.y
+            canvas.coords(rect_id, rect_coords['x1'], rect_coords['y1'], rect_coords['x2'], rect_coords['y2'])
+
+        def on_release(event):
+            pass # Final coords are set on drag
+        
+        canvas.bind("<ButtonPress-1>", on_press)
+        canvas.bind("<B1-Motion>", on_drag)
+        canvas.bind("<ButtonRelease-1>", on_release)
+
+        messagebox.showinfo("Instructions", "Click and drag on the image to draw a cropping rectangle.\nClose this window when you are satisfied with the selection.", parent=root)
+        
+        logging.info("Showing crop selection window.")
+        root.mainloop()
+        logging.info("Crop selection window closed.")
+
+        # --- Cropping Logic ---
+        os.remove(preview_frame)
+
+        x1, y1, x2, y2 = rect_coords['x1'], rect_coords['y1'], rect_coords['x2'], rect_coords['y2']
+        
+        # Ensure x1 < x2 and y1 < y2
+        crop_x = min(x1, x2)
+        crop_y = min(y1, y2)
+        crop_w = abs(x2 - x1)
+        crop_h = abs(y2 - y1)
+
+        if crop_w == 0 or crop_h == 0:
+            logging.warning("Cropping cancelled as no area was selected.")
+            console.print("[bold yellow]Cropping cancelled as no area was selected.[/bold yellow]")
+            return
+
+        logging.info(f"Crop area calculated: W={crop_w}, H={crop_h}, X={crop_x}, Y={crop_y}")
+        console.print(f"Selected crop area: [bold]width={crop_w} height={crop_h} at (x={crop_x}, y={crop_y})[/bold]")
+
+        output_file = f"{Path(file_path).stem}_cropped{Path(file_path).suffix}"
+        crop_command = f'ffmpeg -i "{file_path}" -vf "crop={crop_w}:{crop_h}:{crop_x}:{crop_y}" -c:a copy "{output_file}"'
+        logging.info(f"Running ffmpeg crop command: {crop_command}")
+
+        run_command(crop_command, "Applying crop to video...", show_progress=True)
+        logging.info(f"Successfully cropped video and saved to {output_file}")
+        console.print(f"[bold green]Successfully cropped video and saved to {output_file}[/bold green]")
+        questionary.press_any_key_to_continue().ask()
+    except Exception as e:
+        logging.exception(f"An error occurred in crop_video for file: {file_path}")
+        console.print(f"[bold red]An error occurred during the crop operation. Check {log_file} for details.[/bold red]")
+        questionary.press_any_key_to_continue().ask()
+
 def action_menu(file_path):
     """Display the menu of actions for a selected file."""
     while True:
@@ -362,6 +483,7 @@ def action_menu(file_path):
                 "Convert (Smaller File Size)",
                 "Convert to GIF",
                 "Trim Video",
+                "Crop Video",
                 "Extract Audio",
                 "Remove Audio",
                 questionary.Separator(),
@@ -379,6 +501,7 @@ def action_menu(file_path):
             "Convert (Smaller File Size)": convert_lossy,
             "Convert to GIF": convert_to_gif,
             "Trim Video": trim_video,
+            "Crop Video": crop_video,
             "Extract Audio": extract_audio,
             "Remove Audio": remove_audio,
         }
@@ -414,6 +537,9 @@ if __name__ == "__main__":
     try:
         main_menu()
     except KeyboardInterrupt:
+        logging.info("Operation cancelled by user.")
         console.print("\n[bold]Operation cancelled by user. Goodbye![/bold]")
     except Exception as e:
+        logging.exception("An unexpected error occurred.")
         console.print(f"[bold red]An unexpected error occurred: {e}[/bold red]")
+        console.print(f"Details have been logged to {log_file}")

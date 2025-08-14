@@ -1,3 +1,4 @@
 questionary
 rich
 pyinstaller
+Pillow
