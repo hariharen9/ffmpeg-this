@@ -1,4 +1,4 @@
-name: Create Release and Build Binaries
+name: Create Release, Build Binaries, and Publish to PyPI
 
 on:
   push:
@@ -39,7 +39,7 @@ jobs:
         pip install pyinstaller
 
     - name: Build with PyInstaller
-      run: pyinstaller --onefile --name "${{ matrix.asset_name }}" peg_this.py
+      run: pyinstaller --onefile --name "${{ matrix.asset_name }}" src/peg_this/peg_this.py
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -72,3 +72,36 @@ jobs:
         gh release upload "$tag" artifacts/ffmpeg-this-linux/ffmpeg-this-linux
         gh release upload "$tag" artifacts/ffmpeg-this-macos/ffmpeg-this-macos
         gh release upload "$tag" artifacts/ffmpeg-this-windows.exe/ffmpeg-this-windows.exe
+
+  publish-to-pypi:
+    name: Publish to PyPI
+    needs: create-release
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/peg_this
+    permissions:
+      id-token: write
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build
+
+    - name: Build package
+      run: python -m build
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "peg_this"
+version = "3.0.0"
+authors = [
+  { name="Hariharen S S", email="thisishariharen@gmail.com" },
+]
+description = "A powerful tool for converting, manipulating, and inspecting media files using FFmpeg."
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "ffmpeg-python",
+    "questionary",
+    "rich",
+    "Pillow"
+]
+
+[project.scripts]
+peg_this = "peg_this.peg_this:main"

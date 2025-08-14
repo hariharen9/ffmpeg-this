@@ -13,81 +13,35 @@ A powerful and user-friendly batch script for converting, manipulating, and insp
 - **Audio Removal:** Create a silent version of a video by removing its audio track.
 - **Batch Conversion:** Convert all video files in the directory to a specific format in one go.
 
-## 🚀 Getting Started
+## 🚀 Usage
 
-### Prerequisites
+There are three ways to use `peg_this`:
 
-- **FFmpeg**: Must be installed and accessible in your system's PATH, or the `ffmpeg` and `ffprobe` executables must be placed in the same directory as the converter.
+### 1. Pip Install (Recommended)
 
-### Installation
+This is the easiest way to get started. This will install the tool and all its dependencies, including `ffmpeg`.
 
-1.  Go to the [**Releases**](https://github.com/hariharen9/ffmpeg-this/releases/latest) page.
-2.  Download the executable for your operating system (Windows, macOS, or Linux).
-3.  Place the downloaded file in a directory with your media files.
-4.  Run the executable directly from your terminal or command prompt.
-
-### Easiest Way to Get Started (Recommended for Most Users)
-
-For the quickest and most straightforward experience, especially if you're new to command-line tools or prefer a direct approach:
-
-1.  **Clone the Repository:**
-    ```bash
-    git clone https://github.com/hariharen9/ffmpeg-this.git
-    cd ffmpeg-this
-    ```
-2.  **Place Your Media Files:** Copy or move the video/audio files you wish to process directly into this `ffmpeg-this` directory.
-3.  **Run the Python Script (Cross-Platform):**
-    ```bash
-    python peg_this.py
-    ```
-    This will launch the interactive menu, allowing you to select files and perform operations with a modern, user-friendly interface.
-
-4.  **Alternatively, Use the Batch Script (Windows Only):**
-    If you are on Windows and prefer a simpler, direct executable feel without needing to explicitly run Python:
-    ```bash
-    peg_this.bat
-    ```
-    This will also launch an interactive menu, providing similar functionalities directly from the batch file.
-
-## 💻 Usage
-
-Run the application from your terminal to launch the interactive menu.
-
-```
-$ ./ffmpeg-this
+```bash
+pip install peg_this
 ```
 
-You will be greeted with the main menu, where you can select a file to process or perform a batch conversion.
+Once installed, you can run the tool from your terminal:
 
-```
-==============================================
-         ffmpeg-this
-==============================================
-
-1. Select a Media File to Process
-2. Batch Convert All Videos to a Format
-3. Exit
+```bash
+peg_this
 ```
 
-After selecting a file, a rich, interactive menu will display detailed information and offer a variety of actions:
+### 2. Download from Release
 
-```
-===============================================
-     Actions for: your_video.mp4
-===============================================
+If you don't want to install the package, you can download a pre-built executable from the [Releases](https://github.com/hariharen9/ffmpeg-this/releases/latest) page.
 
-1. Inspect File Details
-2. Convert (Lossless)
-3. Convert (Smaller File Size)
-4. Trim Video
-5. Extract Audio
-6. Remove Audio
-...
-```
+1.  Download the executable for your operating system (Windows, macOS, or Linux).
+2.  Place the downloaded file in a directory with your media files.
+3.  Run the executable directly from your terminal or command prompt.
 
-## 🛠️ Building executable from Source
+### 3. Run from Source
 
-If you prefer to run the script directly or build it yourself:
+If you want to run the script directly from the source code:
 
 1.  **Clone the repository:**
     ```bash
@@ -100,15 +54,8 @@ If you prefer to run the script directly or build it yourself:
     ```
 3.  **Run the script:**
     ```bash
-    python peg_this.py
+    python src/peg_this/peg_this.py
     ```
-4.  **(Optional) Build the executable:**
-    To create the standalone executable, use PyInstaller:
-    ```bash
-    pip install pyinstaller
-    pyinstaller --onefile --name "ffmpeg-this" peg_this.py
-    ```
-
 
 ## 📄 License
 
