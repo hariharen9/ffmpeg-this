@@ -4,6 +4,10 @@
 
 A powerful and user-friendly batch script for converting, manipulating, and inspecting media files using the power of FFmpeg. This script provides a simple command-line menu to perform common audio and video tasks without needing to memorize complex FFmpeg commands.
 
+
+<img src="/assets/peg.gif" width="720">
+
+
 ## ✨ Features
 
 - **Inspect Media Properties**: View detailed information about video and audio streams, including codecs, resolution, frame rate, bitrates, and more.
