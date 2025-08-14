@@ -4,24 +4,32 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "peg_this"
-version = "3.0.0"
+version = "3.0.1"
 authors = [
   { name="Hariharen S S", email="thisishariharen@gmail.com" },
 ]
-description = "A powerful tool for converting, manipulating, and inspecting media files using FFmpeg."
+description = "A powerful, intuitive command-line video editor suite, built on FFmpeg."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Video :: Conversion",
+    "Topic :: Multimedia :: Video :: Non-Linear Editor"
 ]
 dependencies = [
-    "ffmpeg-python",
-    "questionary",
-    "rich",
-    "Pillow"
+    "ffmpeg-python==0.2.0",
+    "questionary>=2.0.0",
+    "rich>=13.0.0",
+    "Pillow>=9.0.0"
 ]
+
+[project.urls]
+"Homepage" = "https://github.com/hariharen9/ffmpeg-this"
+"Bug Tracker" = "https://github.com/hariharen9/ffmpeg-this/issues"
+"Releases" = "https://github.com/hariharen9/ffmpeg-this/releases"
+
 
 [project.scripts]
 peg_this = "peg_this.peg_this:main"
