@@ -697,6 +697,7 @@ def main_menu():
 
         if choice is None or choice == "Exit":
             console.print("[bold]Goodbye![/bold]")
+            console.print("\n[italic cyan]Built with ❤️ by Hariharen[/italic cyan]")
             break
         elif choice == "Process a Single Media File":
             selected_file = select_media_file()

@@ -17,8 +17,27 @@ A powerful and user-friendly batch script for converting, manipulating, and insp
 
 
 ## 🚀 Usage
+### Prerequisite: Install FFmpeg
 
-There are three ways to use `peg_this`:
+> `peg_this` uses a library called `ffmpeg-python` which acts as a controller for the main FFmpeg program. It does not include FFmpeg itself. Therefore, you must have FFmpeg installed on your system and available in your terminal's PATH.
+
+For **macOS** users, the easiest way to install it is with [Homebrew](https://brew.sh/):
+```bash
+brew install ffmpeg
+```
+
+For **Windows** users, you can use a package manager like [Chocolatey](https://chocolatey.org/) or [Scoop](https://scoop.sh/):
+```bash
+# Using Chocolatey
+choco install ffmpeg
+
+# Using Scoop
+scoop install ffmpeg
+```
+
+For other systems, please see the official download page: **[ffmpeg.org/download.html](https://ffmpeg.org/download.html)**
+
+There are ***three*** ways to use `peg_this`:
 
 ### 1. Pip Install (Recommended)
 
