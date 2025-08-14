@@ -114,7 +114,7 @@ def run_command(command, description="Processing...", show_progress=False):
 
 def get_media_files():
     """Scan the current directory for media files."""
-    media_extensions = [".mkv", ".mp4", ".avi", ".mov", ".webm", ".flv", ".wmv", ".mp3", ".flac", ".wav", ".ogg"]
+    media_extensions = [".mkv", ".mp4", ".avi", ".mov", ".webm", ".flv", ".wmv", ".mp3", ".flac", ".wav", ".ogg", ".gif"]
     files = [f for f in os.listdir('.') if os.path.isfile(f) and Path(f).suffix.lower() in media_extensions]
     return files
 
@@ -130,7 +130,7 @@ def select_media_file():
             file_path = filedialog.askopenfilename(
                 title="Select a media file",
                 filetypes=[
-                    ("Media Files", "*.mkv *.mp4 *.avi *.mov *.webm *.flv *.wmv *.mp3 *.flac *.wav *.ogg"),
+                    ("Media Files", "*.mkv *.mp4 *.avi *.mov *.webm *.flv *.wmv *.mp3 *.flac *.wav *.ogg *.gif"),
                     ("All Files", "*.*")
                 ]
             )
@@ -208,42 +208,7 @@ def inspect_file(file_path):
     questionary.press_any_key_to_continue().ask()
 
 
-def convert_lossless(file_path):
-    """Convert a file to a different container without re-encoding."""
-    output_format = questionary.select(
-        "Select output format:",
-        choices=["mp4", "mkv", "mov", "avi", "webm"],
-        use_indicator=True
-    ).ask()
 
-    if not output_format: return
-
-    output_file = f"{Path(file_path).stem}_lossless.{output_format}"
-    command = f'ffmpeg -i "{file_path}" -map 0 -c copy -c:s mov_text "{output_file}"'
-    run_command(command, f"Converting to {output_format}...", show_progress=True)
-    console.print(f"[bold green]Successfully converted to {output_file}[/bold green]")
-    questionary.press_any_key_to_continue().ask()
-
-
-def convert_lossy(file_path):
-    """Re-encode a video to a smaller file size."""
-    quality = questionary.select(
-        "Select quality preset (lower CRF is higher quality):",
-        choices=[
-            questionary.Choice("High Quality (CRF 18)", 18),
-            questionary.Choice("Medium Quality (CRF 23)", 23),
-            questionary.Choice("Low Quality (CRF 28)", 28)
-        ],
-        use_indicator=True
-    ).ask()
-
-    if not quality: return
-
-    output_file = f"{Path(file_path).stem}_crf{quality}.mp4"
-    command = f'ffmpeg -i "{file_path}" -c:v libx264 -crf {quality} -c:a copy "{output_file}"'
-    run_command(command, f"Encoding with CRF {quality}...", show_progress=True)
-    console.print(f"[bold green]Successfully encoded to {output_file}[/bold green]")
-    questionary.press_any_key_to_continue().ask()
 
 def trim_video(file_path):
     """Cut a video by specifying start and end times."""
@@ -286,50 +251,29 @@ def remove_audio(file_path):
     console.print(f"[bold green]Successfully removed audio, saved to {output_file}[/bold green]")
     questionary.press_any_key_to_continue().ask()
 
-def convert_to_gif(file_path):
-    """Convert a video file to a high-quality GIF."""
-    fps = questionary.text("Enter frame rate (e.g., 15):", default="15").ask()
-    if not fps: return
 
-    scale = questionary.text("Enter width in pixels (e.g., 480):", default="480").ask()
-    if not scale: return
-
-    output_file = f"{Path(file_path).stem}.gif"
-    palette_file = "palette.png"
-
-    palette_command = f'ffmpeg -i "{file_path}" -vf "fps={fps},scale={scale}:-1:flags=lanczos,palettegen" -y "{palette_file}"'
-    run_command(palette_command, "Generating color palette...")
-
-    gif_command = f'ffmpeg -i "{file_path}" -i "{palette_file}" -filter_complex "[0:v]fps={fps},scale={scale}:-1:flags=lanczos[x];[x][1:v]paletteuse" -y "{output_file}"'
-    run_command(gif_command, f"Converting to GIF at {fps}fps...", show_progress=True)
-
-    try:
-        os.remove(palette_file)
-    except OSError as e:
-        console.print(f"[bold red]Error removing palette file {palette_file}: {e}[/bold red]")
-
-    console.print(f"[bold green]Successfully created GIF: {output_file}[/bold green]")
-    questionary.press_any_key_to_continue().ask()
 
 def batch_convert():
-    """Convert all video files in the directory to a specific format."""
+    """Convert all media files in the directory to a specific format."""
     output_format = questionary.select(
         "Select output format for the batch conversion:",
-        choices=["mp4", "mkv", "mov", "avi", "webm", "gif"],
+        choices=["mp4", "mkv", "mov", "avi", "webm", "flv", "wmv", "mp3", "flac", "wav", "ogg", "m4a", "aac", "gif"],
         use_indicator=True
     ).ask()
 
     if not output_format: return
 
-    if output_format == 'gif':
-        fps = questionary.text("Enter frame rate (e.g., 15):", default="15").ask()
-        if not fps: return
-
-        scale = questionary.text("Enter width in pixels (e.g., 480):", default="480").ask()
-        if not scale: return
+    quality = "copy"
+    if output_format in ["mp4", "webm", "avi", "wmv"]:
+        quality = questionary.select(
+            "Select quality preset:",
+            choices=["Same as source (lossless if possible)", "High Quality (CRF 18)", "Medium Quality (CRF 23)", "Low Quality (CRF 28)"],
+            use_indicator=True
+        ).ask()
+        if not quality: return
 
     confirm = questionary.confirm(
-        f"This will convert ALL video files in the current directory to .{output_format}. Are you sure?",
+        f"This will attempt to convert ALL media files in the current directory to .{output_format}. Are you sure?",
         default=False
     ).ask()
 
@@ -337,30 +281,49 @@ def batch_convert():
         console.print("[bold yellow]Batch conversion cancelled.[/bold yellow]")
         return
 
-    video_extensions = [".mkv", ".mp4", ".avi", ".mov", ".webm", ".flv", ".wmv"]
-    files_to_convert = [f for f in os.listdir('.') if os.path.isfile(f) and Path(f).suffix.lower() in video_extensions]
+    media_files = get_media_files()
 
-    for file in files_to_convert:
-        if output_format == 'gif':
-            output_file = f"{Path(file).stem}_batch.gif"
+    for file in media_files:
+        is_gif = Path(file).suffix.lower() == '.gif'
+        has_audio = has_audio_stream(file)
+
+        if is_gif and output_format in ["mp3", "flac", "wav", "ogg", "m4a", "aac"]:
+            console.print(f"[bold yellow]Skipping {file}: Cannot convert a GIF to an audio format.[/bold yellow]")
+            continue
+
+        if not has_audio and output_format in ["mp3", "flac", "wav", "ogg", "m4a", "aac"]:
+            console.print(f"[bold yellow]Skipping {file}: No audio stream found.[/bold yellow]")
+            continue
+
+        output_file = f"{Path(file).stem}_batch.{output_format}"
+        command = f'ffmpeg -i "{file}" -c copy "{output_file}"' # Default
+
+        if output_format in ["mp4", "webm", "avi", "wmv"]:
+            if quality == "Same as source (lossless if possible)":
+                command = f'ffmpeg -i "{file}" -c copy "{output_file}"'
+            else:
+                crf = quality.split(" ")[-1][1:-1]
+                audio_codec = "-c:a aac -b:a 192k" if has_audio else "-an"
+                command = f'ffmpeg -i "{file}" -c:v libx264 -crf {crf} {audio_codec} -pix_fmt yuv420p "{output_file}"'
+        elif output_format in ["mp3", "m4a", "aac"]:
+            command = f'ffmpeg -i "{file}" -vn -c:a libmp3lame -b:a 192k "{output_file}"'
+        elif output_format in ["flac", "wav", "ogg"]:
+            command = f'ffmpeg -i "{file}" -vn -c:a {output_format} "{output_file}"'
+        elif output_format == "gif":
+            fps = "15"
+            scale = "480"
             palette_file = f"palette_{Path(file).stem}.png"
-
             palette_command = f'ffmpeg -i "{file}" -vf "fps={fps},scale={scale}:-1:flags=lanczos,palettegen" -y "{palette_file}"'
             run_command(palette_command, f"Generating color palette for {file}...")
+            command = f'ffmpeg -i "{file}" -i "{palette_file}" -filter_complex "[0:v]fps={fps},scale={scale}:-1:flags=lanczos[x];[x][1:v]paletteuse" -y "{output_file}"'
 
-            gif_command = f'ffmpeg -i "{file}" -i "{palette_file}" -filter_complex "[0:v]fps={fps},scale={scale}:-1:flags=lanczos[x];[x][1:v]paletteuse" -y "{output_file}"'
-            run_command(gif_command, f"Converting {file} to GIF...", show_progress=True)
-
-            try:
-                os.remove(palette_file)
-            except OSError as e:
-                console.print(f"[bold red]Error removing palette file {palette_file}: {e}[/bold red]")
+        if run_command(command, f"Converting {file}...", show_progress=True):
+            console.print(f"  -> Saved as {output_file}")
         else:
-            output_file = f"{Path(file).stem}_batch.{output_format}"
-            command = f'ffmpeg -i "{file}" -map 0 -c copy -c:s mov_text "{output_file}"'
-            run_command(command, f"Converting {file}...", show_progress=True)
+            console.print(f"[bold red]Failed to convert {file}.[/bold red]")
 
-        console.print(f"  -> Saved as {output_file}")
+        if output_format == "gif" and os.path.exists(f"palette_{Path(file).stem}.png"):
+            os.remove(f"palette_{Path(file).stem}.png")
 
     console.print("\n[bold green]Batch conversion finished.[/bold green]")
     questionary.press_any_key_to_continue().ask()
@@ -471,6 +434,94 @@ def crop_video(file_path):
         console.print(f"[bold red]An error occurred during the crop operation. Check {log_file} for details.[/bold red]")
         questionary.press_any_key_to_continue().ask()
 
+def has_audio_stream(file_path):
+    """Check if the media file has an audio stream."""
+    command = f'ffprobe -v quiet -print_format json -show_streams -select_streams a "{file_path}"'
+    try:
+        info_json = run_command(command)
+        if info_json:
+            info = json.loads(info_json)
+            if info.get('streams'):
+                return True
+    except Exception as e:
+        logging.error(f"Error checking for audio stream in {file_path}: {e}")
+    return False
+
+def convert_file(file_path):
+    """Convert the file to a different format."""
+    is_gif = Path(file_path).suffix.lower() == '.gif'
+    has_audio = has_audio_stream(file_path)
+
+    output_format = questionary.select(
+        "Select the output format:",
+        choices=["mp4", "mkv", "mov", "avi", "webm", "flv", "wmv", "mp3", "flac", "wav", "ogg", "m4a", "aac", "gif"],
+        use_indicator=True
+    ).ask()
+
+    if not output_format:
+        return
+
+    # Edge case: GIF to audio
+    if is_gif and output_format in ["mp3", "flac", "wav", "ogg", "m4a", "aac"]:
+        console.print("[bold red]Error: Cannot convert a GIF (no audio) to an audio format.[/bold red]")
+        questionary.press_any_key_to_continue().ask()
+        return
+        
+    # Edge case: Video without audio to audio format
+    if not has_audio and output_format in ["mp3", "flac", "wav", "ogg", "m4a", "aac"]:
+        console.print("[bold red]Error: The source file has no audio stream to convert.[/bold red]")
+        questionary.press_any_key_to_continue().ask()
+        return
+
+    output_file = f"{Path(file_path).stem}_converted.{output_format}"
+    command = f'ffmpeg -i "{file_path}" -c copy "{output_file}"' # Default
+
+    if output_format in ["mp4", "webm", "avi", "wmv"]:
+        quality = questionary.select(
+            "Select quality preset:",
+            choices=["Same as source (lossless if possible)", "High Quality (CRF 18)", "Medium Quality (CRF 23)", "Low Quality (CRF 28)"],
+            use_indicator=True
+        ).ask()
+
+        if not quality: return
+
+        if quality == "Same as source (lossless if possible)":
+            command = f'ffmpeg -i "{file_path}" -c copy "{output_file}"'
+        else:
+            crf = quality.split(" ")[-1][1:-1]
+            audio_codec = "-c:a aac -b:a 192k" if has_audio else "-an"
+            command = f'ffmpeg -i "{file_path}" -c:v libx264 -crf {crf} {audio_codec} -pix_fmt yuv420p "{output_file}"'
+
+    elif output_format in ["mp3", "m4a", "aac"]:
+        bitrate = questionary.select("Select audio bitrate:", choices=["128k", "192k", "256k", "320k"]).ask()
+        if not bitrate: return
+        command = f'ffmpeg -i "{file_path}" -vn -c:a libmp3lame -b:a {bitrate} "{output_file}"'
+
+    elif output_format in ["flac", "wav", "ogg"]:
+        command = f'ffmpeg -i "{file_path}" -vn -c:a {output_format} "{output_file}"'
+
+    elif output_format == "gif":
+        fps = questionary.text("Enter frame rate (e.g., 15):", default="15").ask()
+        if not fps: return
+        scale = questionary.text("Enter width in pixels (e.g., 480):", default="480").ask()
+        if not scale: return
+        
+        palette_file = "palette.png"
+        palette_command = f'ffmpeg -i "{file_path}" -vf "fps={fps},scale={scale}:-1:flags=lanczos,palettegen" -y "{palette_file}"'
+        run_command(palette_command, "Generating color palette...")
+        command = f'ffmpeg -i "{file_path}" -i "{palette_file}" -filter_complex "[0:v]fps={fps},scale={scale}:-1:flags=lanczos[x];[x][1:v]paletteuse" -y "{output_file}"'
+
+    if run_command(command, f"Converting to {output_format}...", show_progress=True):
+        console.print(f"[bold green]Successfully converted to {output_file}[/bold green]")
+    else:
+        console.print("[bold red]Conversion failed. Please check the logs for more details.[/bold red]")
+
+    if output_format == "gif" and os.path.exists("palette.png"):
+        os.remove("palette.png")
+        
+    questionary.press_any_key_to_continue().ask()
+
+
 def action_menu(file_path):
     """Display the menu of actions for a selected file."""
     while True:
@@ -479,9 +530,7 @@ def action_menu(file_path):
             "Choose an action:",
             choices=[
                 "Inspect File Details",
-                "Convert (Lossless)",
-                "Convert (Smaller File Size)",
-                "Convert to GIF",
+                "Convert",
                 "Trim Video",
                 "Crop Video",
                 "Extract Audio",
@@ -497,9 +546,7 @@ def action_menu(file_path):
 
         actions = {
             "Inspect File Details": inspect_file,
-            "Convert (Lossless)": convert_lossless,
-            "Convert (Smaller File Size)": convert_lossy,
-            "Convert to GIF": convert_to_gif,
+            "Convert": convert_file,
             "Trim Video": trim_video,
             "Crop Video": crop_video,
             "Extract Audio": extract_audio,
