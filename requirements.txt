@@ -2,3 +2,4 @@ questionary
 rich
 pyinstaller
 Pillow
+ffmpeg-python
