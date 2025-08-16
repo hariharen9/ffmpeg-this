@@ -36,3 +36,14 @@ __pycache__/
 # OS-specific files
 .DS_Store
 Thumbs.db
+
+#other common files
+*.log
+*.bak
+*.tmp
+*.swp
+*.pid
+
+*posts.md
+*.bat
+poster
