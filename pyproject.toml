@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "peg_this"
-version = "3.0.4"
+version = "3.0.6"
 authors = [
   { name="Hariharen S S", email="thisishariharen@gmail.com" },
 ]
