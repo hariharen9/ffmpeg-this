@@ -8,7 +8,7 @@ version = "3.0.6"
 authors = [
   { name="Hariharen S S", email="thisishariharen@gmail.com" },
 ]
-description = "A powerful, intuitive command-line video editor suite, built on FFmpeg."
+description = "A powerful and intuitive command-line video editor, built on FFmpeg."
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
@@ -27,8 +27,13 @@ dependencies = [
 
 [project.urls]
 "Homepage" = "https://github.com/hariharen9/ffmpeg-this"
+"Documentation" = "https://github.com/hariharen9/ffmpeg-this/blob/main/README.md"
+"Funding" = "https://www.buymeacoffee.com/hariharen"
+"Say Thanks!" = "https://saythanks.io/to/thisishariharen"
+"Social" = "https://twitter.com/thisishariharen"
 "Bug Tracker" = "https://github.com/hariharen9/ffmpeg-this/issues"
 "Releases" = "https://github.com/hariharen9/ffmpeg-this/releases"
+"Sponsor" = "https://github.com/sponsors/hariharen9"
 
 
 [project.scripts]
