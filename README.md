@@ -133,5 +133,5 @@ Contributions are welcome! Please see the [Contributing Guidelines](CONTRIBUTING
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 <p align="center">
-    <h2>Made with ❤️ by <a href="https://hariharen9.site">Hariharen</a></h2>
+    <h2>Made with ❤️ by <a href="https://hariharen.site">Hariharen</a></h2>
 </p>
