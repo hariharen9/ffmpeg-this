@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import questionary
@@ -8,8 +9,8 @@ from rich.console import Console
 
 from peg_this.features.audio import extract_audio, remove_audio
 from peg_this.features.batch import batch_convert
-from peg_this.features.convert import convert_file
-from peg_this.features.crop import crop_video
+from peg_this.features.convert import convert_file, convert_image, resize_image, rotate_image, flip_image
+from peg_this.features.crop import crop_video, crop_image
 from peg_this.features.inspect import inspect_file
 from peg_this.features.join import join_videos
 from peg_this.features.trim import trim_video
@@ -29,7 +30,42 @@ logging.basicConfig(
 
 # Initialize Rich Console
 console = Console()
+IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"]
 # --- End Global Configuration ---
+
+
+def image_action_menu(file_path):
+    """Display the menu of actions for a selected image file."""
+    while True:
+        console.rule(f"[bold]Actions for Image: {os.path.basename(file_path)}[/bold]")
+        action = questionary.select(
+            "Choose an action:",
+            choices=[
+                "Inspect File Details",
+                "Convert Format",
+                "Resize",
+                "Rotate",
+                "Flip",
+                "Crop (Visual)",
+                questionary.Separator(),
+                "Back to File List"
+            ],
+            use_indicator=True
+        ).ask()
+
+        if action is None or action == "Back to File List":
+            break
+
+        actions = {
+            "Inspect File Details": inspect_file,
+            "Convert Format": convert_image,
+            "Resize": resize_image,
+            "Rotate": rotate_image,
+            "Flip": flip_image,
+            "Crop (Visual)": crop_image,
+        }
+        if action in actions:
+            actions[action](file_path)
 
 
 def action_menu(file_path):
@@ -90,7 +126,10 @@ def main_menu():
         elif choice == "Process a Single Media File":
             selected_file = select_media_file()
             if selected_file:
-                action_menu(selected_file)
+                if Path(selected_file).suffix.lower() in IMAGE_EXTENSIONS:
+                    image_action_menu(selected_file)
+                else:
+                    action_menu(selected_file)
         elif choice == "Join Multiple Videos":
             join_videos()
         elif choice == "Batch Convert All Media in Directory":
