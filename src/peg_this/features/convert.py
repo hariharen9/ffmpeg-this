@@ -91,3 +91,135 @@ def convert_file(file_path):
         os.remove(f"palette_{Path(file_path).stem}.png")
         
     questionary.press_any_key_to_continue().ask()
+
+
+def convert_image(file_path):
+    """Convert an image to a different format."""
+    output_format = questionary.select(
+        "Select the output format:",
+        choices=["jpg", "png", "webp", "bmp", "tiff"],
+        use_indicator=True
+    ).ask()
+    if not output_format: return
+
+    output_file = f"{Path(file_path).stem}_converted.{output_format}"
+    kwargs = {'y': None}
+    
+    # For JPG and WEBP, allow quality selection
+    if output_format in ['jpg', 'webp']:
+        quality_preset = questionary.select(
+            "Select quality preset:",
+            choices=["High (95%)", "Medium (80%)", "Low (60%)"],
+            use_indicator=True
+        ).ask()
+        if not quality_preset: return
+
+        quality_map = {"High (95%)": "95", "Medium (80%)": "80", "Low (60%)": "60"}
+        quality = quality_map[quality_preset]
+
+        if output_format == 'jpg':
+            q_scale = int(31 - (int(quality) / 100.0) * 30)
+            kwargs['q:v'] = q_scale
+        elif output_format == 'webp':
+            kwargs['quality'] = quality
+
+    stream = ffmpeg.input(file_path).output(output_file, **kwargs)
+    
+    if run_command(stream, f"Converting to {output_format.upper()}..."):
+        console.print(f"[bold green]Successfully converted image to {output_file}[/bold green]")
+    else:
+        console.print("[bold red]Image conversion failed.[/bold red]")
+    
+    questionary.press_any_key_to_continue().ask()
+
+
+def resize_image(file_path):
+    """Resize an image to new dimensions."""
+    console.print("Enter new dimensions. Use [bold]-1[/bold] for one dimension to preserve aspect ratio.")
+    width = questionary.text("Enter new width (e.g., 1280 or -1):").ask()
+    if not width: return
+    height = questionary.text("Enter new height (e.g., 720 or -1):").ask()
+    if not height: return
+
+    try:
+        if int(width) == -1 and int(height) == -1:
+            console.print("[bold red]Error: Width and Height cannot both be -1.[/bold red]")
+            questionary.press_any_key_to_continue().ask()
+            return
+    except ValueError:
+        console.print("[bold red]Error: Invalid dimensions. Please enter numbers.[/bold red]")
+        questionary.press_any_key_to_continue().ask()
+        return
+
+    output_file = f"{Path(file_path).stem}_resized{Path(file_path).suffix}"
+    
+    stream = ffmpeg.input(file_path).filter('scale', w=width, h=height).output(output_file, y=None)
+    
+    if run_command(stream, "Resizing image..."):
+        console.print(f"[bold green]Successfully resized image to {output_file}[/bold green]")
+    else:
+        console.print("[bold red]Image resizing failed.[/bold red]")
+        
+    questionary.press_any_key_to_continue().ask()
+
+
+def rotate_image(file_path):
+    """Rotate an image."""
+    rotation = questionary.select(
+        "Select rotation:",
+        choices=[
+            "90 degrees clockwise",
+            "90 degrees counter-clockwise",
+            "180 degrees"
+        ],
+        use_indicator=True
+    ).ask()
+    if not rotation: return
+
+    output_file = f"{Path(file_path).stem}_rotated{Path(file_path).suffix}"
+    
+    stream = ffmpeg.input(file_path)
+    if rotation == "90 degrees clockwise":
+        stream = stream.filter('transpose', 1)
+    elif rotation == "90 degrees counter-clockwise":
+        stream = stream.filter('transpose', 2)
+    elif rotation == "180 degrees":
+        # Apply 90-degree rotation twice for 180 degrees
+        stream = stream.filter('transpose', 2).filter('transpose', 2)
+
+    output_stream = stream.output(output_file, y=None)
+    
+    if run_command(output_stream, "Rotating image..."):
+        console.print(f"[bold green]Successfully rotated image and saved to {output_file}[/bold green]")
+    else:
+        console.print("[bold red]Image rotation failed.[/bold red]")
+        
+    questionary.press_any_key_to_continue().ask()
+
+
+def flip_image(file_path):
+    """Flip an image horizontally or vertically."""
+    flip_direction = questionary.select(
+        "Select flip direction:",
+        choices=["Horizontal", "Vertical"],
+        use_indicator=True
+    ).ask()
+    if not flip_direction: return
+
+    output_file = f"{Path(file_path).stem}_flipped{Path(file_path).suffix}"
+    
+    stream = ffmpeg.input(file_path)
+    if flip_direction == "Horizontal":
+        stream = stream.filter('hflip')
+    else:
+        stream = stream.filter('vflip')
+
+    output_stream = stream.output(output_file, y=None)
+    
+    if run_command(output_stream, "Flipping image..."):
+        console.print(f"[bold green]Successfully flipped image and saved to {output_file}[/bold green]")
+    else:
+        console.print("[bold red]Image flipping failed.[/bold red]")
+        
+    questionary.press_any_key_to_continue().ask()
+

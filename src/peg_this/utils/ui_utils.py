@@ -16,7 +16,16 @@ console = Console()
 
 def get_media_files():
     """Scan the current directory for media files."""
-    media_extensions = [".mkv", ".mp4", ".avi", ".mov", ".webm", ".flv", ".wmv", ".mp3", ".flac", ".wav", ".ogg", ".gif"]
+    media_extensions = [
+        # Video
+        ".mkv", ".mp4", ".avi", ".mov", ".webm", ".flv", ".wmv", 
+        # Audio
+        ".mp3", ".flac", ".wav", ".ogg", 
+        # GIF
+        ".gif",
+        # Image
+        ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"
+    ]
     files = [f for f in os.listdir('.') if os.path.isfile(f) and Path(f).suffix.lower() in media_extensions]
     return files
 
@@ -31,7 +40,7 @@ def select_media_file():
             root.withdraw()
             file_path = filedialog.askopenfilename(
                 title="Select a media file",
-                filetypes=[("Media Files", "*.mkv *.mp4 *.avi *.mov *.webm *.flv *.wmv *.mp3 *.flac *.wav *.ogg *.gif"), ("All Files", "*.*")]
+                filetypes=[("Media Files", "*.mkv *.mp4 *.avi *.mov *.webm *.flv *.wmv *.mp3 *.flac *.wav *.ogg *.gif *.jpg *.jpeg *.png *.webp *.bmp *.tiff"), ("All Files", "*.*")]
             )
             return file_path if file_path else None
         return None

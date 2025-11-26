@@ -37,12 +37,11 @@ def run_command(stream_spec, description="Processing...", show_progress=False):
     Runs an ffmpeg command using ffmpeg-python.
     - For simple commands, it runs directly.
     - For commands with a progress bar, it generates the ffmpeg arguments,
-      runs them as a subprocess, and parses stderr to show progress,
-      mimicking the logic from the original script for accuracy.
+      runs them as a subprocess, and parses stderr to show progress.
+    Returns True on success, False on failure.
     """
     console.print(f"[bold cyan]{description}[/bold cyan]")
     
-    # Get the full command arguments from the ffmpeg-python stream object
     args = stream_spec.get_args()
     full_command = ['ffmpeg'] + args
     logging.info(f"Executing command: {' '.join(full_command)}")
@@ -50,24 +49,22 @@ def run_command(stream_spec, description="Processing...", show_progress=False):
     if not show_progress:
         try:
             # Use ffmpeg.run() for simple, non-progress tasks. It's cleaner.
-            out, err = ffmpeg.run(stream_spec, capture_stdout=True, capture_stderr=True, quiet=True)
+            ffmpeg.run(stream_spec, capture_stdout=True, capture_stderr=True, quiet=True)
             logging.info("Command successful (no progress bar).")
-            return out.decode('utf-8')
+            return True
         except ffmpeg.Error as e:
             error_message = e.stderr.decode('utf-8')
             console.print("[bold red]An error occurred:[/bold red]")
             console.print(error_message)
             logging.error(f"ffmpeg error:{error_message}")
-            return None
+            return False
     else:
         # For the progress bar, we must run ffmpeg as a subprocess and parse stderr.
         duration = 0
         try:
-            # Find the primary input file from the command arguments to probe it.
             input_file_path = None
             for i, arg in enumerate(full_command):
                 if arg == '-i' and i + 1 < len(full_command):
-                    # This is a robust way to find the first input file.
                     input_file_path = full_command[i+1]
                     break
             
@@ -90,7 +87,6 @@ def run_command(stream_spec, description="Processing...", show_progress=False):
         ) as progress:
             task = progress.add_task(description, total=100)
             
-            # Run the command as a subprocess to capture stderr in real-time
             process = subprocess.Popen(
                 full_command,
                 stdout=subprocess.PIPE,
@@ -110,19 +106,18 @@ def run_command(stream_spec, description="Processing...", show_progress=False):
                         percent_complete = (elapsed_time / duration) * 100
                         progress.update(task, completed=min(percent_complete, 100))
                     except Exception:
-                        pass # Ignore any parsing errors
+                        pass
 
             process.wait()
             progress.update(task, completed=100)
             
             if process.returncode != 0:
-                # The error was already logged line-by-line, but we can add a final message.
                 log_file = logging.getLogger().handlers[0].baseFilename
                 console.print(f"[bold red]An error occurred during processing. Check {log_file} for details.[/bold red]")
-                return None
+                return False
         
         logging.info("Command successful (with progress bar).")
-        return "Success"
+        return True
 
 
 def has_audio_stream(file_path):
