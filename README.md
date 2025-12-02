@@ -17,7 +17,7 @@
 
 > Your Video editor within CLI 🚀
 
-A powerful and user-friendly batch script for converting, manipulating, and inspecting media files using the power of FFmpeg. This script provides a simple command-line menu to perform common audio and video tasks without needing to memorize complex FFmpeg commands.
+A powerful and user-friendly Python CLI tool for converting, manipulating, and inspecting media files using the power of FFmpeg. This tool provides a simple command-line menu to perform common audio and video tasks without needing to memorize complex FFmpeg commands.
 
 
 <p align="center">
@@ -34,6 +34,7 @@ A powerful and user-friendly batch script for converting, manipulating, and insp
 - **Visually Crop Videos**: An interactive tool that shows you a frame of the video, allowing you to click and drag to select the exact area you want to crop.
 - **Extract Audio**: Rip the audio track from any video file into MP3, FLAC, or WAV.
 - **Remove Audio**: Create a silent version of your video by stripping out all audio streams.
+- **Image Manipulation**: Perform basic operations on images such as format conversion, resizing, rotating, and flipping.
 - **Batch Conversion**: Convert all media files in the current directory to a specified format in one go.
 - **CLI Interface**: A user-friendly command-line interface that makes it easy to perform common tasks and navigate the tool's features.
 
@@ -83,7 +84,7 @@ If you prefer not to install the package, you can download a pre-built executabl
 3.  Run the executable directly from your terminal.
 
 ### 3. Run from Source
-If you want to run the script directly from the source code:
+If you want to run the tool directly from the source code:
 
 1.  **Clone the repository:**
     ```bash
@@ -94,7 +95,7 @@ If you want to run the script directly from the source code:
     ```bash
     pip install -r requirements.txt
     ```
-3.  **Run the script:**
+3.  **Run the tool:**
     ```bash
     python -m src.peg_this.peg_this
     ```

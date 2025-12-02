@@ -137,7 +137,7 @@ def main_menu():
 
 
 def main():
-    """Main entry point for the application script."""
+    """Main entry point for the application."""
     try:
         main_menu()
     except (KeyboardInterrupt, EOFError):
