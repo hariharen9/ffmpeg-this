@@ -47,7 +47,7 @@ def crop_video(file_path):
         root.attributes("-topmost", True)
 
         img = Image.open(preview_frame)
-        img_tk = ImageTk.PhotoImage(img)
+        img_tk = ImageTk.PhotoImage(img, master=root)
 
         canvas = tk.Canvas(root, width=img.width, height=img.height, cursor="cross")
         canvas.pack()
@@ -108,6 +108,13 @@ def crop_video(file_path):
         console.print(f"[bold green]Successfully cropped video and saved to {output_file}[/bold green]")
 
     finally:
+        # Ensure Tkinter window is destroyed
+        if 'root' in locals() and root:
+            try:
+                root.destroy()
+            except Exception:
+                pass
+                
         if os.path.exists(preview_frame):
             os.remove(preview_frame)
         questionary.press_any_key_to_continue().ask()
@@ -133,7 +140,7 @@ def crop_image(file_path):
         max_height = root.winfo_screenheight() - 100
         img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
         
-        img_tk = ImageTk.PhotoImage(img)
+        img_tk = ImageTk.PhotoImage(img, master=root)
 
         canvas = tk.Canvas(root, width=img.width, height=img.height, cursor="cross")
         canvas.pack()
@@ -189,4 +196,10 @@ def crop_image(file_path):
     except Exception as e:
         console.print(f"[bold red]An error occurred during cropping: {e}[/bold red]")
     finally:
+        # Ensure Tkinter window is destroyed
+        if 'root' in locals() and root:
+            try:
+                root.destroy()
+            except Exception:
+                pass
         questionary.press_any_key_to_continue().ask()
