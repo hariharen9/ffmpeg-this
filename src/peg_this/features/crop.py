@@ -10,7 +10,7 @@ from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream
 
 try:
     import tkinter as tk
-    from tkinter import messagebox
+    # messagebox removed as it causes issues on some systems
     from PIL import Image, ImageTk
 except ImportError:
     tk = None
@@ -68,7 +68,14 @@ def crop_video(file_path):
         canvas.bind("<ButtonPress-1>", on_press)
         canvas.bind("<B1-Motion>", on_drag)
         
-        messagebox.showinfo("Instructions", "Click and drag to draw a cropping rectangle.\nClose this window when you are done.", parent=root)
+        # Avoid messagebox to prevent "application has been destroyed" errors
+        console.print("[bold cyan]Instructions: Click and drag to draw a cropping rectangle. Close the window when you are done.[/bold cyan]")
+        
+        # Ensure window comes to front
+        root.lift()
+        root.attributes('-topmost',True)
+        root.after_idle(root.attributes,'-topmost',False)
+        
         root.mainloop()
 
         # --- Cropping Logic ---
@@ -147,7 +154,14 @@ def crop_image(file_path):
         canvas.bind("<ButtonPress-1>", on_press)
         canvas.bind("<B1-Motion>", on_drag)
         
-        messagebox.showinfo("Instructions", "Click and drag to draw a cropping rectangle.\nClose this window when you are done.", parent=root)
+        # Avoid messagebox to prevent "application has been destroyed" errors
+        console.print("[bold cyan]Instructions: Click and drag to draw a cropping rectangle. Close the window when you are done.[/bold cyan]")
+        
+        # Ensure window comes to front
+        root.lift()
+        root.attributes('-topmost',True)
+        root.after_idle(root.attributes,'-topmost',False)
+        
         root.mainloop()
 
         # --- Cropping Logic ---
