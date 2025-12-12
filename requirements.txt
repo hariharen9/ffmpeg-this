@@ -3,3 +3,4 @@ rich
 pyinstaller
 Pillow
 ffmpeg-python
+faster-whisper

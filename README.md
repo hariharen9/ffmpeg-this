@@ -1,4 +1,4 @@
-# 🎬 ffmPEG-this
+<h1 align="center">FFm<u><i>PEG</i></u>-this</h1>
 
 <p align="center">
     <a href="https://pypi.org/project/peg-this/">
@@ -15,34 +15,108 @@
     </a>
 </p>
 
-> Your Video editor within CLI 🚀
+<p align="center"><b>Your Editor within CLI</b></p>
 
 A powerful and user-friendly Python CLI tool for converting, manipulating, and inspecting media files using the power of FFmpeg. This tool provides a simple command-line menu to perform common audio and video tasks without needing to memorize complex FFmpeg commands.
-
 
 <p align="center">
     <img src="/assets/peg.gif" width="720">
 </p>
 
+## Features at a Glance
 
-## ✨ Features
+| Category | Feature | Description |
+|----------|---------|-------------|
+| **Inspect** | Media Properties | View detailed codec, resolution, frame rate, bitrate, and stream information |
+| **Convert** | Video Formats | Convert to MP4, MKV, MOV, AVI, WebM with quality presets (CRF 18/23/28) |
+| | Audio Formats | Convert to MP3 (128k-320k bitrate), FLAC, WAV |
+| | GIF Creation | Convert video clips to animated GIFs with optimized palette |
+| | Image Formats | Convert between JPG, PNG, WebP, BMP, TIFF with quality control |
+| **Subtitles** | AI Transcription | Generate subtitles using Whisper AI (7 model sizes available) |
+| | Sidecar Export | Save as `.srt`, `.vtt`, `.txt`, or `.lrc` files |
+| | Soft Subtitles | Embed toggleable subtitle track into video |
+| | Hard Subtitles | Burn permanent subtitles directly into video |
+| | Multi-language | Support for 99+ languages with auto-detection |
+| **Edit** | Trim/Cut | Extract video segments by start/end time (lossless, no re-encoding) |
+| | Visual Crop | Interactive GUI to select crop area on video/image |
+| | Join/Concatenate | Merge multiple videos with automatic resolution matching |
+| **Audio** | Extract Audio | Rip audio track to MP3, FLAC, or WAV |
+| | Remove Audio | Create silent version of video (keeps video intact) |
+| **Image** | Resize | Scale images with aspect ratio preservation |
+| | Rotate | Rotate 90°, 180°, or 270° |
+| | Flip | Flip horizontally or vertically |
+| | Crop | Visual cropping with click-and-drag selection |
+| **Batch** | Batch Convert | Convert all media files in directory at once |
 
-- **Inspect Media Properties**: View detailed information about video and audio streams, including codecs, resolution, frame rate, bitrates, and more.
-- **Convert & Transcode**: Convert videos and audio to a wide range of popular formats (MP4, MKV, WebM, MP3, FLAC, WAV, GIF) with simple quality presets.
-- **Join Videos (Concatenate)**: Combine two or more videos into a single file. The tool automatically handles differences in resolution and audio sample rates for a seamless join.
-- **Trim (Cut) Videos**: Easily cut a video to a specific start and end time without re-encoding for fast, lossless clips.
-- **Visually Crop Videos**: An interactive tool that shows you a frame of the video, allowing you to click and drag to select the exact area you want to crop.
-- **Extract Audio**: Rip the audio track from any video file into MP3, FLAC, or WAV.
-- **Remove Audio**: Create a silent version of your video by stripping out all audio streams.
-- **Image Manipulation**: Perform basic operations on images such as format conversion, resizing, rotating, and flipping.
-- **Batch Conversion**: Convert all media files in the current directory to a specified format in one go.
-- **CLI Interface**: A user-friendly command-line interface that makes it easy to perform common tasks and navigate the tool's features.
+## Detailed Feature Breakdown
 
+### Video Operations
 
-## 🚀 Usage
+| Operation | Input | Output | Method | Re-encoding |
+|-----------|-------|--------|--------|-------------|
+| **Convert** | Any video | MP4, MKV, MOV, AVI, WebM | FFmpeg transcode | Yes (CRF quality) |
+| **Trim** | Any video | Same format | Stream copy | No (lossless) |
+| **Crop** | Any video | Same format | Visual selection + crop filter | Yes |
+| **Join** | Multiple videos | Single MP4 | Concat filter + normalize | Yes |
+| **To GIF** | Any video | Animated GIF | 2-pass palette optimization | Yes |
+
+### Audio Operations
+
+| Operation | Input | Output | Notes |
+|-----------|-------|--------|-------|
+| **Extract** | Video with audio | MP3, FLAC, WAV | Preserves original quality for FLAC/WAV |
+| **Remove** | Video with audio | Silent video | Stream copy (fast, no re-encoding) |
+| **Convert** | Audio file | MP3, FLAC, WAV | Bitrate selection for MP3 |
+
+### Subtitle Generation
+
+| Model | Size | Speed | Accuracy | Languages |
+|-------|------|-------|----------|-----------|
+| `tiny.en` | ~75 MB | Fastest | Good | English only |
+| `base.en` | ~150 MB | Fast | Better | English only |
+| `small.en` | ~500 MB | Balanced | Great | English only |
+| `medium.en` | ~1.5 GB | Slower | Excellent | English only |
+| `small` | ~500 MB | Balanced | Great | 99+ languages |
+| `medium` | ~1.5 GB | Slower | Excellent | 99+ languages |
+| `large-v3` | ~3 GB | Slowest | Best | 99+ languages |
+
+**Output Options:**
+| Type | File Extension | Description |
+|------|----------------|-------------|
+| Sidecar | `.srt` | SubRip - most compatible format |
+| Sidecar | `.vtt` | WebVTT - for web/HTML5 players |
+| Sidecar | `.txt` | Plain text transcript |
+| Sidecar | `.lrc` | Lyrics format with timestamps |
+| Soft Subs | `.mp4/.mkv` | Embedded, toggleable in players |
+| Hard Subs | `.mp4/.mkv` | Burned in, always visible |
+
+### Image Operations
+
+| Operation | Options | Notes |
+|-----------|---------|-------|
+| **Convert** | JPG, PNG, WebP, BMP, TIFF | Quality presets (95%, 80%, 60%) |
+| **Resize** | Custom width/height | Use `-1` to preserve aspect ratio |
+| **Rotate** | 90° CW, 90° CCW, 180° | Lossless rotation |
+| **Flip** | Horizontal, Vertical | Mirror image |
+| **Crop** | Visual selection | Interactive GUI with preview |
+
+### Supported Formats
+
+| Type | Supported Formats |
+|------|-------------------|
+| **Video Input** | `.mp4`, `.mkv`, `.avi`, `.mov`, `.webm`, `.flv`, `.wmv`, `.gif` |
+| **Video Output** | `.mp4`, `.mkv`, `.mov`, `.avi`, `.webm`, `.gif` |
+| **Audio Input** | `.mp3`, `.flac`, `.wav`, `.ogg`, `.aac`, `.m4a` |
+| **Audio Output** | `.mp3`, `.flac`, `.wav` |
+| **Image Input** | `.jpg`, `.jpeg`, `.png`, `.webp`, `.bmp`, `.tiff` |
+| **Image Output** | `.jpg`, `.png`, `.webp`, `.bmp`, `.tiff` |
+| **Subtitle Output** | `.srt`, `.vtt`, `.txt`, `.lrc` |
+
+## Usage
+
 ### Prerequisite: Install FFmpeg
 
-> [NOTE]
+> [!NOTE]
 > `peg_this` uses a library called `ffmpeg-python` which acts as a controller for the main FFmpeg program. It does not include FFmpeg itself. Therefore, you must have FFmpeg installed on your system and available in your terminal's PATH.
 
 For **macOS** users, the easiest way to install it is with [Homebrew](https://brew.sh/):
@@ -100,7 +174,26 @@ If you want to run the tool directly from the source code:
     python -m src.peg_this.peg_this
     ```
 
-## 📈 Star History
+## Subtitle Generation
+
+The subtitle feature uses [faster-whisper](https://github.com/SYSTRAN/faster-whisper), a fast and accurate speech-to-text engine powered by OpenAI's Whisper model.
+
+### How it works
+
+1. Select a video file
+2. Choose "Generate Subtitles (Whisper)"
+3. Pick a model size (tiny to large-v3)
+4. Select processing mode (Fast or Accurate)
+5. Choose output type:
+   - **Sidecar file**: Export as `.srt`, `.vtt`, `.txt`, or `.lrc`
+   - **Soft subtitles**: Embed into video (can be toggled on/off in players)
+   - **Hard subtitles**: Burn into video (permanent, always visible)
+
+### Supported Languages
+
+Using multilingual models (`small`, `medium`, `large-v3`), you can transcribe audio in 99+ languages including English, Spanish, French, German, Chinese, Japanese, Korean, Hindi, Arabic, and many more.
+
+## Star History
 
 <p align="center">
   <a href="https://star-history.com/#hariharen9/ffmpeg-this&Date">
@@ -108,7 +201,7 @@ If you want to run the tool directly from the source code:
   </a>
 </p>
 
-## ✨ Sponsor
+## Sponsor
 
 <p align="center">
     <a href="https://github.com/sponsors/hariharen9">
@@ -119,20 +212,20 @@ If you want to run the tool directly from the source code:
     </a>
 </p>
 
-## 👥 Contributors
+## Contributors
 
 <a href="https://github.com/hariharen9/ffmpeg-this/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=hariharen9/ffmpeg-this" />
 </a>
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please see the [Contributing Guidelines](CONTRIBUTING.md) for more information.
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 <p align="center">
-    <h2>Made with ❤️ by <a href="https://hariharen.site">Hariharen</a></h2>
+    Made with ❤️ by <a href="https://hariharen.site">Hariharen</a>
 </p>
