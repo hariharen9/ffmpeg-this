@@ -4,10 +4,10 @@ import ffmpeg
 import questionary
 from rich.console import Console
 
-from peg_this.utils.ffmpeg_utils import run_command
+from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream
 from peg_this.utils.validation import (
     validate_input_file, check_output_file, get_video_duration,
-    validate_time_range, format_duration, press_continue
+    validate_time_range, format_duration, warn_reencode, press_continue
 )
 
 console = Console()
@@ -43,7 +43,20 @@ def trim_video(file_path):
         press_continue()
         return
 
-    stream = ffmpeg.input(file_path, ss=start_secs, to=end_secs).output(final_output, c='copy')
+    warn_reencode("Trimming with accurate start time")
+
+    input_stream = ffmpeg.input(file_path)
+
+    if has_audio_stream(file_path):
+        stream = ffmpeg.output(
+            input_stream.video, input_stream.audio, final_output,
+            ss=start_secs, to=end_secs, **{'c:v': 'libx264', 'crf': 23, 'c:a': 'copy'}
+        )
+    else:
+        stream = ffmpeg.output(
+            input_stream, final_output,
+            ss=start_secs, to=end_secs, **{'c:v': 'libx264', 'crf': 23}
+        )
 
     if action_result == 'overwrite':
         stream = stream.overwrite_output()
