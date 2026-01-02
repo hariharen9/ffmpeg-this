@@ -12,7 +12,6 @@ from peg_this.utils.validation import (
 
 try:
     import tkinter as tk
-    from tkinter import messagebox
     from PIL import Image, ImageTk
 except ImportError:
     tk = None
@@ -58,7 +57,7 @@ def crop_video(file_path):
         root.attributes("-topmost", True)
 
         img = Image.open(preview_frame)
-        img_tk = ImageTk.PhotoImage(img)
+        img_tk = ImageTk.PhotoImage(img, master=root)
 
         canvas = tk.Canvas(root, width=img.width, height=img.height, cursor="cross")
         canvas.pack()
@@ -79,7 +78,10 @@ def crop_video(file_path):
         canvas.bind("<ButtonPress-1>", on_press)
         canvas.bind("<B1-Motion>", on_drag)
 
-        messagebox.showinfo("Instructions", "Click and drag to draw a cropping rectangle.\nClose this window when you are done.", parent=root)
+        console.print("[bold cyan]Instructions: Click and drag to draw a cropping rectangle. Close the window when done.[/bold cyan]")
+        root.lift()
+        root.after_idle(root.attributes, '-topmost', False)
+
         root.mainloop()
 
         crop_w = abs(rect_coords['x2'] - rect_coords['x1'])
@@ -149,7 +151,7 @@ def crop_image(file_path):
         max_height = root.winfo_screenheight() - 100
         img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
 
-        img_tk = ImageTk.PhotoImage(img)
+        img_tk = ImageTk.PhotoImage(img, master=root)
 
         canvas = tk.Canvas(root, width=img.width, height=img.height, cursor="cross")
         canvas.pack()
@@ -170,7 +172,10 @@ def crop_image(file_path):
         canvas.bind("<ButtonPress-1>", on_press)
         canvas.bind("<B1-Motion>", on_drag)
 
-        messagebox.showinfo("Instructions", "Click and drag to draw a cropping rectangle.\nClose this window when you are done.", parent=root)
+        console.print("[bold cyan]Instructions: Click and drag to draw a cropping rectangle. Close the window when done.[/bold cyan]")
+        root.lift()
+        root.after_idle(root.attributes, '-topmost', False)
+
         root.mainloop()
 
         crop_w = abs(rect_coords['x2'] - rect_coords['x1'])
