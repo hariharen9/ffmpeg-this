@@ -9,10 +9,14 @@ from rich.console import Console
 
 from peg_this.features.audio import extract_audio, remove_audio
 from peg_this.features.batch import batch_convert
+from peg_this.features.compress import compress_video, change_resolution
 from peg_this.features.convert import convert_file, convert_image, resize_image, rotate_image, flip_image
 from peg_this.features.crop import crop_video, crop_image
+from peg_this.features.effects import add_watermark, merge_audio_video
+from peg_this.features.frames import extract_frames, split_video
 from peg_this.features.inspect import inspect_file
 from peg_this.features.join import join_videos
+from peg_this.features.speed import change_speed, reverse_video
 from peg_this.features.subtitle import generate_subtitles
 from peg_this.features.trim import trim_video
 from peg_this.utils.ffmpeg_utils import check_ffmpeg_ffprobe
@@ -28,7 +32,7 @@ logging.basicConfig(
 )
 
 console = Console()
-VERSION = "4.1.0"
+VERSION = "4.2.0"
 
 LOGO = """[bold magenta]
 ╔════════════════════════════════════════════════════════════════════════╗
@@ -49,7 +53,7 @@ LOGO = """[bold magenta]
 
 def show_landing():
     console.clear()
-    console.print(LOGO.format(version=VERSION))
+    console.print(LOGO.format(version=VERSION), justify="center")
     console.print("[dim]Peg it. Convert it. Done.[/dim]", justify="center")
     console.print()
 
@@ -60,6 +64,7 @@ def video_edit_menu():
         choices=[
             "Trim Video",
             "Crop Video (Visual)",
+            "Split Video",
             "Join Multiple Videos",
             questionary.Separator(),
             "← Back"
@@ -77,10 +82,14 @@ def video_edit_menu():
     if not file_path:
         return
 
-    if action == "Trim Video":
-        trim_video(file_path)
-    elif action == "Crop Video (Visual)":
-        crop_video(file_path)
+    actions = {
+        "Trim Video": trim_video,
+        "Crop Video (Visual)": crop_video,
+        "Split Video": split_video,
+    }
+
+    if action in actions:
+        actions[action](file_path)
 
 
 def video_audio_menu():
@@ -89,6 +98,7 @@ def video_audio_menu():
         choices=[
             "Extract Audio",
             "Remove Audio",
+            "Merge Audio with Video",
             questionary.Separator(),
             "← Back"
         ]
@@ -101,10 +111,14 @@ def video_audio_menu():
     if not file_path:
         return
 
-    if action == "Extract Audio":
-        extract_audio(file_path)
-    elif action == "Remove Audio":
-        remove_audio(file_path)
+    actions = {
+        "Extract Audio": extract_audio,
+        "Remove Audio": remove_audio,
+        "Merge Audio with Video": merge_audio_video,
+    }
+
+    if action in actions:
+        actions[action](file_path)
 
 
 def subtitle_menu():
@@ -115,10 +129,63 @@ def subtitle_menu():
 
 
 def video_convert_menu():
+    action = questionary.select(
+        "Select a convert action:",
+        choices=[
+            "Convert Format",
+            "Compress Video",
+            "Change Resolution",
+            questionary.Separator(),
+            "← Back"
+        ]
+    ).ask()
+
+    if action == "← Back" or action is None:
+        return
+
     file_path = select_media_file(filter_type="video")
     if not file_path:
         return
-    convert_file(file_path)
+
+    actions = {
+        "Convert Format": convert_file,
+        "Compress Video": compress_video,
+        "Change Resolution": change_resolution,
+    }
+
+    if action in actions:
+        actions[action](file_path)
+
+
+def video_effects_menu():
+    action = questionary.select(
+        "Select an effect:",
+        choices=[
+            "Change Speed",
+            "Reverse Video",
+            "Add Watermark",
+            "Extract Frames",
+            questionary.Separator(),
+            "← Back"
+        ]
+    ).ask()
+
+    if action == "← Back" or action is None:
+        return
+
+    file_path = select_media_file(filter_type="video")
+    if not file_path:
+        return
+
+    actions = {
+        "Change Speed": change_speed,
+        "Reverse Video": reverse_video,
+        "Add Watermark": add_watermark,
+        "Extract Frames": extract_frames,
+    }
+
+    if action in actions:
+        actions[action](file_path)
 
 
 def image_menu():
@@ -169,10 +236,11 @@ def main_menu():
             "What would you like to do?",
             choices=[
                 questionary.Separator("─────── Video ───────"),
-                "✂️  Edit (Trim, Crop, Join)",
-                "🎵  Audio (Extract, Remove)",
+                "✂️  Edit (Trim, Crop, Split, Join)",
+                "🎵  Audio (Extract, Remove, Merge)",
                 "💬  Subtitles (AI Generate)",
-                "🔄  Convert Format",
+                "🔄  Convert (Format, Compress, Resize)",
+                "✨  Effects (Speed, Reverse, Watermark)",
                 questionary.Separator("─────── Image ───────"),
                 "🖼️  Image Tools",
                 questionary.Separator("─────── Other ───────"),
@@ -197,8 +265,10 @@ def main_menu():
             video_audio_menu()
         elif "Subtitles" in choice:
             subtitle_menu()
-        elif "Convert Format" in choice:
+        elif "Convert" in choice:
             video_convert_menu()
+        elif "Effects" in choice:
+            video_effects_menu()
         elif "Image" in choice:
             image_menu()
         elif "Batch" in choice:
