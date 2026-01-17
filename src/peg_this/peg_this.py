@@ -54,7 +54,17 @@ LOGO = """[bold magenta]
 def show_landing():
     console.clear()
     console.print(LOGO.format(version=VERSION), justify="center")
-    console.print("[dim]Peg it. Convert it. Done.[/dim]", justify="center")
+    console.print("[dim]Studio in a Shell.[/dim]", justify="center")
+    console.print()
+
+
+def show_help_bar():
+    console.print(
+        "[dim][[/dim][cyan]↑↓[/cyan][dim]] Navigate  "
+        "[[/dim][cyan]Enter[/cyan][dim]] Select  "
+        "[[/dim][cyan]Ctrl+C[/cyan][dim]] Exit[/dim]"
+    )
+    console.print()
     console.print()
 
 
@@ -230,6 +240,7 @@ def inspect_menu():
 def main_menu():
     check_ffmpeg_ffprobe()
     show_landing()
+    show_help_bar()
 
     while True:
         choice = questionary.select(
@@ -255,9 +266,9 @@ def main_menu():
         if choice is None or "Exit" in choice:
             console.print()
             console.print("[bold magenta]Thanks for using peg_this![/bold magenta]")
-            console.print("[dim]Peg it. Convert it. Done.[/dim]")
+            console.print("[dim]Your Studio in a Shell.[/dim]")
             console.print()
-            console.print("[dim italic]Built with ❤️ by Hariharen[/dim italic]")
+            console.print("[dim italic]Built with ❤️ by [link=https://hariharen.site]Hariharen[/link][/dim italic]")
             break
         elif "Edit" in choice:
             video_edit_menu()
