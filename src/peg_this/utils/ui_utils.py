@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import questionary
+from prompt_toolkit.keys import Keys
 from rich.console import Console
 
 try:
@@ -19,6 +20,28 @@ IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"]
 GIF_EXTENSIONS = [".gif"]
 
 ALL_MEDIA_EXTENSIONS = VIDEO_EXTENSIONS + AUDIO_EXTENSIONS + IMAGE_EXTENSIONS + GIF_EXTENSIONS
+
+
+def select_with_back(message, choices):
+    """Select prompt with backspace support for going back."""
+    back_value = None
+    for choice in choices:
+        if isinstance(choice, str) and "← Back" in choice:
+            back_value = choice
+            break
+
+    question = questionary.select(message, choices=choices, use_indicator=True)
+
+    if back_value:
+        kb = question.application.key_bindings
+
+        @kb.add(Keys.Backspace, eager=True)
+        @kb.add(Keys.Delete, eager=True)
+        @kb.add(Keys.ControlH, eager=True)
+        def handle_back(event):
+            event.app.exit(result=back_value)
+
+    return question.ask()
 
 
 def get_media_files(filter_type=None):
@@ -66,6 +89,6 @@ def select_media_file(filter_type=None):
         return None
 
     choices = media_files + [questionary.Separator(), "← Back"]
-    file = questionary.select(f"Select a {file_type_label} file:", choices=choices, use_indicator=True).ask()
+    file = select_with_back(f"Select a {file_type_label} file:", choices=choices)
 
     return os.path.abspath(file) if file and file != "← Back" else None

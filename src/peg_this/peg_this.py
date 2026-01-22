@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import questionary
+from prompt_toolkit.keys import Keys
 from rich.console import Console
 
 from peg_this.features.audio import extract_audio, remove_audio
@@ -62,14 +63,37 @@ def show_help_bar():
     console.print(
         "[dim][[/dim][cyan]↑↓[/cyan][dim]] Navigate  "
         "[[/dim][cyan]Enter[/cyan][dim]] Select  "
+        "[[/dim][cyan]Backspace[/cyan][dim]] Back  "
         "[[/dim][cyan]Ctrl+C[/cyan][dim]] Exit[/dim]"
     )
     console.print()
-    console.print()
+
+
+def select_with_back(message, choices):
+    """Select prompt with backspace support for going back."""
+    back_value = None
+    for choice in choices:
+        if isinstance(choice, str) and "← Back" in choice:
+            back_value = choice
+            break
+
+    question = questionary.select(message, choices=choices)
+
+    if back_value:
+        # Add directly to the application's existing key bindings
+        kb = question.application.key_bindings
+
+        @kb.add(Keys.Backspace, eager=True)
+        @kb.add(Keys.Delete, eager=True)
+        @kb.add(Keys.ControlH, eager=True)
+        def handle_back(event):
+            event.app.exit(result=back_value)
+
+    return question.ask()
 
 
 def video_edit_menu():
-    action = questionary.select(
+    action = select_with_back(
         "Select an edit action:",
         choices=[
             "Trim Video",
@@ -79,7 +103,7 @@ def video_edit_menu():
             questionary.Separator(),
             "← Back"
         ]
-    ).ask()
+    )
 
     if action == "← Back" or action is None:
         return
@@ -103,7 +127,7 @@ def video_edit_menu():
 
 
 def video_audio_menu():
-    action = questionary.select(
+    action = select_with_back(
         "Select an audio action:",
         choices=[
             "Extract Audio",
@@ -112,7 +136,7 @@ def video_audio_menu():
             questionary.Separator(),
             "← Back"
         ]
-    ).ask()
+    )
 
     if action == "← Back" or action is None:
         return
@@ -139,7 +163,7 @@ def subtitle_menu():
 
 
 def video_convert_menu():
-    action = questionary.select(
+    action = select_with_back(
         "Select a convert action:",
         choices=[
             "Convert Format",
@@ -148,7 +172,7 @@ def video_convert_menu():
             questionary.Separator(),
             "← Back"
         ]
-    ).ask()
+    )
 
     if action == "← Back" or action is None:
         return
@@ -168,7 +192,7 @@ def video_convert_menu():
 
 
 def video_effects_menu():
-    action = questionary.select(
+    action = select_with_back(
         "Select an effect:",
         choices=[
             "Change Speed",
@@ -178,7 +202,7 @@ def video_effects_menu():
             questionary.Separator(),
             "← Back"
         ]
-    ).ask()
+    )
 
     if action == "← Back" or action is None:
         return
@@ -199,7 +223,7 @@ def video_effects_menu():
 
 
 def image_menu():
-    action = questionary.select(
+    action = select_with_back(
         "Select an image action:",
         choices=[
             "Convert Format",
@@ -210,7 +234,7 @@ def image_menu():
             questionary.Separator(),
             "← Back"
         ]
-    ).ask()
+    )
 
     if action == "← Back" or action is None:
         return
