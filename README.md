@@ -32,6 +32,8 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | | Audio Formats | Convert to MP3 (128k-320k bitrate), FLAC, WAV |
 | | GIF Creation | Convert video clips to animated GIFs with optimized palette |
 | | Image Formats | Convert between JPG, PNG, WebP, BMP, TIFF with quality control |
+| | Compress Video | Target file size (e.g., 25MB for Discord) or CRF quality presets |
+| | Change Resolution | Scale to 4K, 1080p, 720p, 480p, or custom resolution |
 | **Subtitles** | AI Transcription | Generate subtitles using Whisper AI (7 model sizes available) |
 | | Sidecar Export | Save as `.srt`, `.vtt`, `.txt`, or `.lrc` files |
 | | Soft Subtitles | Embed toggleable subtitle track into video |
@@ -39,9 +41,15 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | | Multi-language | Support for 99+ languages with auto-detection |
 | **Edit** | Trim/Cut | Extract video segments by start/end time (lossless, no re-encoding) |
 | | Visual Crop | Interactive GUI to select crop area on video/image |
+| | Split Video | Divide video into equal parts or by duration |
 | | Join/Concatenate | Merge multiple videos with automatic resolution matching |
 | **Audio** | Extract Audio | Rip audio track to MP3, FLAC, or WAV |
 | | Remove Audio | Create silent version of video (keeps video intact) |
+| | Merge Audio | Replace or mix audio track with video |
+| **Effects** | Change Speed | Adjust playback speed (0.25x to 4x) with audio pitch preservation |
+| | Reverse Video | Play video backwards (includes audio) |
+| | Add Watermark | Overlay image or text with custom positioning |
+| | Extract Frames | Export single frame, every N seconds, or all frames as images |
 | **Image** | Resize | Scale images with aspect ratio preservation |
 | | Rotate | Rotate 90°, 180°, or 270° |
 | | Flip | Flip horizontally or vertically |
@@ -55,9 +63,16 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | Operation | Input | Output | Method | Re-encoding |
 |-----------|-------|--------|--------|-------------|
 | **Convert** | Any video | MP4, MKV, MOV, AVI, WebM | FFmpeg transcode | Yes (CRF quality) |
+| **Compress** | Any video | Same format | 2-pass encoding | Yes (target size/CRF) |
+| **Change Resolution** | Any video | Same format | Scale filter | Yes |
 | **Trim** | Any video | Same format | Stream copy | No (lossless) |
 | **Crop** | Any video | Same format | Visual selection + crop filter | Yes |
+| **Split** | Any video | Multiple segments | Stream copy or re-encode | Configurable |
 | **Join** | Multiple videos | Single MP4 | Concat filter + normalize | Yes |
+| **Change Speed** | Any video | Same format | setpts + atempo filters | Yes |
+| **Reverse** | Any video | Same format | Reverse filter | Yes |
+| **Add Watermark** | Any video | Same format | Overlay filter | Yes |
+| **Extract Frames** | Any video | PNG/JPG images | Frame extraction | N/A |
 | **To GIF** | Any video | Animated GIF | 2-pass palette optimization | Yes |
 
 ### Audio Operations
@@ -66,6 +81,7 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 |-----------|-------|--------|-------|
 | **Extract** | Video with audio | MP3, FLAC, WAV | Preserves original quality for FLAC/WAV |
 | **Remove** | Video with audio | Silent video | Stream copy (fast, no re-encoding) |
+| **Merge** | Video + Audio file | Video with new audio | Replace or mix audio tracks |
 | **Convert** | Audio file | MP3, FLAC, WAV | Bitrate selection for MP3 |
 
 ### Subtitle Generation
