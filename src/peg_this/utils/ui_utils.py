@@ -127,6 +127,17 @@ def select_file_with_search(message, choices, back_value="← Back"):
     return question.ask()
 
 
+def show_file_select_help():
+    """Show help bar for file selection with search and preview hints."""
+    console.print(
+        "[dim][[/dim][cyan]↑↓[/cyan][dim]] Navigate  "
+        "[[/dim][cyan]Type[/cyan][dim]] Search  "
+        "[[/dim][cyan]p[/cyan][dim]] Preview  "
+        "[[/dim][cyan]Enter[/cyan][dim]] Select  "
+        "[[/dim][cyan]Backspace[/cyan][dim]] Back[/dim]"
+    )
+
+
 def get_media_files(filter_type=None):
     if filter_type == "video":
         extensions = VIDEO_EXTENSIONS + GIF_EXTENSIONS
@@ -172,6 +183,7 @@ def select_media_file(filter_type=None):
         return None
 
     choices = media_files + [questionary.Separator(), "← Back"]
+    show_file_select_help()
     file = select_file_with_search(f"Select a {file_type_label} file:", choices=choices)
 
     return os.path.abspath(file) if file and file != "← Back" else None
