@@ -13,6 +13,7 @@ from peg_this.features.convert import convert_file, convert_image, resize_image,
 from peg_this.features.crop import crop_video, crop_image
 from peg_this.features.inspect import inspect_file
 from peg_this.features.join import join_videos
+from peg_this.features.subtitle import generate_subtitles
 from peg_this.features.trim import trim_video
 from peg_this.utils.ffmpeg_utils import check_ffmpeg_ffprobe
 from peg_this.utils.ui_utils import select_media_file
@@ -77,6 +78,7 @@ def action_menu(file_path):
             choices=[
                 "Inspect File Details",
                 "Convert",
+                "Generate Subtitles (Whisper)",
                 "Trim Video",
                 "Crop Video (Visual)",
                 "Extract Audio",
@@ -93,6 +95,7 @@ def action_menu(file_path):
         actions = {
             "Inspect File Details": inspect_file,
             "Convert": convert_file,
+            "Generate Subtitles (Whisper)": generate_subtitles,
             "Trim Video": trim_video,
             "Crop Video (Visual)": crop_video,
             "Extract Audio": extract_audio,
