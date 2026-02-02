@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 import ffmpeg
@@ -6,21 +5,52 @@ import questionary
 from rich.console import Console
 
 from peg_this.utils.ffmpeg_utils import run_command
+from peg_this.utils.validation import (
+    validate_input_file, check_output_file, get_video_duration,
+    validate_time_range, format_duration, press_continue
+)
 
 console = Console()
 
 
 def trim_video(file_path):
-    """Cut a video by specifying start and end times."""
+    if not validate_input_file(file_path):
+        press_continue()
+        return
+
+    duration = get_video_duration(file_path)
+    if duration > 0:
+        console.print(f"[dim]Video duration: {format_duration(duration)}[/dim]")
+
     start_time = questionary.text("Enter start time (HH:MM:SS or seconds):").ask()
-    if not start_time: return
+    if not start_time:
+        return
+
     end_time = questionary.text("Enter end time (HH:MM:SS or seconds):").ask()
-    if not end_time: return
+    if not end_time:
+        return
+
+    start_secs, end_secs = validate_time_range(start_time, end_time, duration if duration > 0 else None)
+    if start_secs is None:
+        press_continue()
+        return
 
     output_file = f"{Path(file_path).stem}_trimmed{Path(file_path).suffix}"
-    
-    stream = ffmpeg.input(file_path, ss=start_time, to=end_time).output(output_file, c='copy', y=None)
-    
-    run_command(stream, "Trimming video...", show_progress=True)
-    console.print(f"[bold green]Successfully trimmed to {output_file}[/bold green]")
-    questionary.press_any_key_to_continue().ask()
+    action_result, final_output = check_output_file(output_file, "Video file")
+
+    if action_result == 'cancel':
+        console.print("[yellow]Operation cancelled.[/yellow]")
+        press_continue()
+        return
+
+    stream = ffmpeg.input(file_path, ss=start_secs, to=end_secs).output(final_output, c='copy')
+
+    if action_result == 'overwrite':
+        stream = stream.overwrite_output()
+
+    if run_command(stream, "Trimming video...", show_progress=True):
+        console.print(f"[bold green]Successfully trimmed to {final_output}[/bold green]")
+    else:
+        console.print("[bold red]Failed to trim video.[/bold red]")
+
+    press_continue()

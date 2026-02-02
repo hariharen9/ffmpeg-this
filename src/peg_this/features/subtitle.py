@@ -8,13 +8,12 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
 
 from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream
+from peg_this.utils.validation import (
+    validate_input_file, check_output_file, check_disk_space,
+    get_video_duration, format_duration, press_continue
+)
 
 console = Console()
-
-WHISPER_MODELS = [
-    "tiny", "tiny.en", "base", "base.en", "small", "small.en",
-    "medium", "medium.en", "large-v2", "large-v3",
-]
 
 
 def check_existing_subtitles(file_path):
@@ -24,60 +23,6 @@ def check_existing_subtitles(file_path):
         return len(subtitle_streams) > 0, len(subtitle_streams)
     except Exception:
         return False, 0
-
-
-def get_video_duration(file_path):
-    try:
-        probe = ffmpeg.probe(file_path)
-        return float(probe['format'].get('duration', 0))
-    except Exception:
-        return 0
-
-
-def check_output_file(output_path, file_type="file"):
-    if not os.path.exists(output_path):
-        return 'proceed', output_path
-
-    console.print(f"[yellow]Warning: {file_type} already exists:[/yellow]")
-    console.print(f"[dim]{output_path}[/dim]")
-
-    choice = questionary.select(
-        "What would you like to do?",
-        choices=["Overwrite existing file", "Save with a new name", "Cancel operation"]
-    ).ask()
-
-    if not choice or "Cancel" in choice:
-        return 'cancel', None
-    elif "Overwrite" in choice:
-        return 'overwrite', output_path
-    else:
-        path = Path(output_path)
-        counter = 1
-        while True:
-            new_name = f"{path.stem}_{counter}{path.suffix}"
-            new_path = path.with_name(new_name)
-            if not os.path.exists(new_path):
-                console.print(f"[cyan]Will save as: {new_path.name}[/cyan]")
-                return 'rename', str(new_path)
-            counter += 1
-
-
-def check_disk_space(file_path, multiplier=2):
-    try:
-        input_size = os.path.getsize(file_path)
-        required_space = input_size * multiplier
-        import shutil
-        total, used, free = shutil.disk_usage(Path(file_path).parent)
-        if free < required_space:
-            free_gb = free / (1024**3)
-            required_gb = required_space / (1024**3)
-            console.print(f"[yellow]Warning: Low disk space![/yellow]")
-            console.print(f"[dim]Available: {free_gb:.1f} GB, Estimated needed: {required_gb:.1f} GB[/dim]")
-            if not questionary.confirm("Continue anyway?", default=False).ask():
-                return False
-        return True
-    except Exception:
-        return True
 
 
 def sanitize_path_for_filter(path):
@@ -162,34 +107,15 @@ def segments_to_lrc(segments):
     return "\n".join(lrc_content)
 
 
-def format_duration(seconds):
-    if seconds < 60:
-        return f"{int(seconds)} seconds"
-    elif seconds < 3600:
-        mins = int(seconds // 60)
-        secs = int(seconds % 60)
-        return f"{mins}m {secs}s"
-    else:
-        hours = int(seconds // 3600)
-        mins = int((seconds % 3600) // 60)
-        return f"{hours}h {mins}m"
-
-
 def generate_subtitles(file_path):
-    if not os.path.exists(file_path):
-        console.print("[bold red]Error: File not found.[/bold red]")
-        questionary.press_any_key_to_continue().ask()
-        return
-
-    if not os.access(file_path, os.R_OK):
-        console.print("[bold red]Error: Cannot read file. Check permissions.[/bold red]")
-        questionary.press_any_key_to_continue().ask()
+    if not validate_input_file(file_path):
+        press_continue()
         return
 
     if not has_audio_stream(file_path):
         console.print("[bold red]Error: File has no audio stream.[/bold red]")
         console.print("[dim]Subtitles require audio to transcribe.[/dim]")
-        questionary.press_any_key_to_continue().ask()
+        press_continue()
         return
 
     has_subs, sub_count = check_existing_subtitles(file_path)
@@ -210,7 +136,7 @@ def generate_subtitles(file_path):
     except ImportError:
         console.print("[bold red]Error: faster-whisper is not installed.[/bold red]")
         console.print("[yellow]Install it with: pip install faster-whisper[/yellow]")
-        questionary.press_any_key_to_continue().ask()
+        press_continue()
         return
 
     console.print("\n[bold cyan]Subtitle Generation (Whisper AI)[/bold cyan]")
@@ -308,7 +234,7 @@ def generate_subtitles(file_path):
 
     if action_result == 'cancel':
         console.print("[yellow]Operation cancelled.[/yellow]")
-        questionary.press_any_key_to_continue().ask()
+        press_continue()
         return
 
     crf = "23"
@@ -325,7 +251,7 @@ def generate_subtitles(file_path):
     with tempfile.TemporaryDirectory() as temp_dir:
         wav_path = extract_audio_for_whisper(file_path, temp_dir)
         if not wav_path:
-            questionary.press_any_key_to_continue().ask()
+            press_continue()
             return
 
         console.print(f"[cyan]Loading Whisper model '{model_name}'...[/cyan]")
@@ -342,7 +268,7 @@ def generate_subtitles(file_path):
                 console.print("[bold red]Error: Failed to download model. Check your internet connection.[/bold red]")
             else:
                 console.print(f"[bold red]Failed to load model: {e}[/bold red]")
-            questionary.press_any_key_to_continue().ask()
+            press_continue()
             return
 
         console.print("[cyan]Transcribing audio...[/cyan]")
@@ -368,7 +294,7 @@ def generate_subtitles(file_path):
 
         except KeyboardInterrupt:
             console.print("\n[yellow]Transcription cancelled by user.[/yellow]")
-            questionary.press_any_key_to_continue().ask()
+            press_continue()
             return
         except Exception as e:
             error_msg = str(e)
@@ -377,13 +303,13 @@ def generate_subtitles(file_path):
                 console.print("[yellow]Try using a smaller model or processing a shorter video.[/yellow]")
             else:
                 console.print(f"[bold red]Transcription failed: {e}[/bold red]")
-            questionary.press_any_key_to_continue().ask()
+            press_continue()
             return
 
         if not segments:
             console.print("[bold yellow]No speech detected in audio.[/bold yellow]")
             console.print("[dim]The video might be silent, have only music, or the audio quality is too low.[/dim]")
-            questionary.press_any_key_to_continue().ask()
+            press_continue()
             return
 
         detected_lang = info.language if language is None else language
@@ -408,7 +334,7 @@ def generate_subtitles(file_path):
 
         if not subtitle_content.strip():
             console.print("[bold yellow]Warning: Generated subtitles are empty.[/bold yellow]")
-            questionary.press_any_key_to_continue().ask()
+            press_continue()
             return
 
         sub_temp_path = os.path.join(temp_dir, f"output.{sub_ext}")
@@ -417,7 +343,7 @@ def generate_subtitles(file_path):
                 f.write(subtitle_content)
         except IOError as e:
             console.print(f"[bold red]Error writing subtitle file: {e}[/bold red]")
-            questionary.press_any_key_to_continue().ask()
+            press_continue()
             return
 
         try:
@@ -468,4 +394,4 @@ def generate_subtitles(file_path):
         except Exception as e:
             console.print(f"[bold red]Unexpected error: {e}[/bold red]")
 
-    questionary.press_any_key_to_continue().ask()
+    press_continue()
