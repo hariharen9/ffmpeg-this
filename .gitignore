@@ -2,6 +2,7 @@
 /dist/
 /build/
 *.spec
+*.egg-info/
 
 # Python cache
 __pycache__/

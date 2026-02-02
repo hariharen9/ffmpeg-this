@@ -22,7 +22,8 @@ dependencies = [
     "ffmpeg-python==0.2.0",
     "questionary>=2.0.0",
     "rich>=13.0.0",
-    "Pillow>=9.0.0"
+    "Pillow>=9.0.0",
+    "faster-whisper>=1.0.0"
 ]
 
 [project.urls]
