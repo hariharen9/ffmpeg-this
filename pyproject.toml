@@ -4,19 +4,57 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "peg_this"
-version = "4.0.0"
+version = "4.1.0"
 authors = [
+  { name="Hariharen S S", email="thisishariharen@gmail.com" },
+]
+maintainers = [
   { name="Hariharen S S", email="thisishariharen@gmail.com" },
 ]
 description = "A powerful and intuitive command-line video editor, built on FFmpeg."
 readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.8"
+keywords = [
+    "ffmpeg",
+    "video",
+    "audio",
+    "media",
+    "converter",
+    "editor",
+    "cli",
+    "subtitles",
+    "whisper",
+    "transcription",
+    "trim",
+    "crop",
+    "compress",
+    "gif",
+    "batch"
+]
 classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Multimedia",
+    "Topic :: Multimedia :: Video",
     "Topic :: Multimedia :: Video :: Conversion",
-    "Topic :: Multimedia :: Video :: Non-Linear Editor"
+    "Topic :: Multimedia :: Video :: Non-Linear Editor",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Multimedia :: Sound/Audio :: Conversion",
+    "Topic :: Utilities"
 ]
 dependencies = [
     "ffmpeg-python==0.2.0",
@@ -26,16 +64,43 @@ dependencies = [
     "faster-whisper>=1.0.0"
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0"
+]
+
 [project.urls]
 "Homepage" = "https://github.com/hariharen9/ffmpeg-this"
 "Documentation" = "https://github.com/hariharen9/ffmpeg-this/blob/main/README.md"
-"Funding" = "https://www.buymeacoffee.com/hariharen"
-"Say Thanks!" = "https://saythanks.io/to/thisishariharen"
-"Social" = "https://twitter.com/thisishariharen"
+"Repository" = "https://github.com/hariharen9/ffmpeg-this"
+"Changelog" = "https://github.com/hariharen9/ffmpeg-this/releases"
 "Bug Tracker" = "https://github.com/hariharen9/ffmpeg-this/issues"
-"Releases" = "https://github.com/hariharen9/ffmpeg-this/releases"
+"Funding" = "https://www.buymeacoffee.com/hariharen"
 "Sponsor" = "https://github.com/sponsors/hariharen9"
-
 
 [project.scripts]
 peg_this = "peg_this.peg_this:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+peg_this = ["py.typed"]
+
+[tool.black]
+line-length = 100
+target-version = ["py38", "py39", "py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
