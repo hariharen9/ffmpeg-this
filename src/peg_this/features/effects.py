@@ -1197,3 +1197,345 @@ def blur_region(file_path):
         if os.path.exists(preview_frame):
             os.remove(preview_frame)
         press_continue()
+
+
+def auto_blur_faces(file_path):
+    """Automatically detect and blur faces in video using AI."""
+    # Check for required dependencies
+    try:
+        import cv2
+        import mediapipe as mp
+        import numpy as np
+    except ImportError as e:
+        missing = str(e).split("'")[1] if "'" in str(e) else "required packages"
+        console.print(f"[bold red]Missing dependency: {missing}[/bold red]")
+        console.print("[dim]Install with: pip install opencv-python mediapipe[/dim]")
+        press_continue()
+        return
+
+    if not validate_input_file(file_path):
+        press_continue()
+        return
+
+    if not check_has_video_stream(file_path):
+        console.print("[bold red]Error: No video stream found in the file.[/bold red]")
+        press_continue()
+        return
+
+    duration = get_video_duration(file_path)
+    if duration <= 0:
+        console.print("[bold red]Error: Could not determine video duration.[/bold red]")
+        press_continue()
+        return
+
+    console.print(f"[dim]Video duration: {format_duration(duration)}[/dim]")
+    console.print("[bold cyan]AI-powered face detection and blur[/bold cyan]")
+
+    # Detection method
+    method = questionary.select(
+        "Detection method:",
+        choices=[
+            "OpenCV Haar Cascade (Fast, works at all distances)",
+            "MediaPipe AI (More accurate for close-up faces)",
+            "← Back"
+        ]
+    ).ask()
+
+    if method == "← Back" or method is None:
+        return
+
+    use_mediapipe = "MediaPipe" in method
+
+    # Detection confidence
+    confidence = questionary.select(
+        "Face detection sensitivity:",
+        choices=[
+            "High (Detect more faces, may have false positives)",
+            "Medium (Balanced, recommended)",
+            "Low (Only very clear faces)"
+        ]
+    ).ask()
+
+    if confidence is None:
+        return
+
+    if "High" in confidence:
+        min_confidence = 0.2
+    elif "Medium" in confidence:
+        min_confidence = 0.4
+    else:
+        min_confidence = 0.6
+
+    # Blur strength
+    blur_strength = questionary.select(
+        "Blur strength:",
+        choices=[
+            "Light (Face slightly obscured)",
+            "Medium (Recommended)",
+            "Heavy (Face unrecognizable)",
+            "Pixelate (Mosaic effect)"
+        ]
+    ).ask()
+
+    if blur_strength is None:
+        return
+
+    # Blur padding (expand blur region around face)
+    padding = questionary.select(
+        "Blur region padding:",
+        choices=[
+            "None (Exact face boundary)",
+            "Small (10% padding)",
+            "Medium (20% padding, recommended)",
+            "Large (30% padding)"
+        ]
+    ).ask()
+
+    if padding is None:
+        return
+
+    if "None" in padding:
+        padding_pct = 0.0
+    elif "Small" in padding:
+        padding_pct = 0.1
+    elif "Medium" in padding:
+        padding_pct = 0.2
+    else:
+        padding_pct = 0.3
+
+    suffix = "faces_blurred"
+    output_file = f"{Path(file_path).stem}_{suffix}{Path(file_path).suffix}"
+    action_result, final_output = check_output_file(output_file, "Output file")
+
+    if action_result == 'cancel':
+        console.print("[yellow]Operation cancelled.[/yellow]")
+        press_continue()
+        return
+
+    # Temporary file for video without audio
+    temp_video = f"temp_video_{Path(file_path).stem}.mp4"
+
+    try:
+        # Open video
+        cap = cv2.VideoCapture(file_path)
+        if not cap.isOpened():
+            console.print("[bold red]Error: Could not open video file.[/bold red]")
+            press_continue()
+            return
+
+        # Get video properties
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        console.print(f"[dim]Resolution: {width}x{height}, FPS: {fps:.2f}, Frames: {total_frames}[/dim]")
+
+        # Set up video writer
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(temp_video, fourcc, fps, (width, height))
+
+        # Progress tracking
+        from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeRemainingColumn
+
+        # Initialize face detector based on method
+        detector = None
+        face_cascade = None
+
+        if use_mediapipe:
+            # Initialize MediaPipe Face Detection using Tasks API
+            import urllib.request
+            import urllib.error
+            import ssl
+            model_path = os.path.join(os.path.dirname(__file__), "blaze_face_short_range.tflite")
+
+            if not os.path.exists(model_path):
+                console.print("[dim]Downloading face detection model from Google...[/dim]")
+                model_url = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite"
+
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+
+                try:
+                    with urllib.request.urlopen(model_url, context=ssl_context, timeout=30) as response:
+                        with open(model_path, 'wb') as f:
+                            f.write(response.read())
+                    console.print("[dim]Model downloaded successfully.[/dim]")
+                except Exception as e:
+                    console.print(f"[bold red]Failed to download model: {e}[/bold red]")
+                    console.print("[yellow]Falling back to OpenCV Haar Cascade...[/yellow]")
+                    use_mediapipe = False
+
+            if use_mediapipe:
+                BaseOptions = mp.tasks.BaseOptions
+                FaceDetector = mp.tasks.vision.FaceDetector
+                FaceDetectorOptions = mp.tasks.vision.FaceDetectorOptions
+                VisionRunningMode = mp.tasks.vision.RunningMode
+
+                options = FaceDetectorOptions(
+                    base_options=BaseOptions(model_asset_path=model_path),
+                    running_mode=VisionRunningMode.IMAGE,
+                    min_detection_confidence=min_confidence
+                )
+                detector = FaceDetector.create_from_options(options)
+
+        if not use_mediapipe:
+            # Use OpenCV Haar Cascade (built-in, works at all distances)
+            cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+            face_cascade = cv2.CascadeClassifier(cascade_path)
+            if face_cascade.empty():
+                console.print("[bold red]Error: Could not load face cascade.[/bold red]")
+                press_continue()
+                return
+
+            # Map confidence to scale factor and neighbors
+            if "High" in confidence:
+                scale_factor = 1.1
+                min_neighbors = 3
+            elif "Medium" in confidence:
+                scale_factor = 1.2
+                min_neighbors = 5
+            else:
+                scale_factor = 1.3
+                min_neighbors = 7
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeRemainingColumn(),
+            console=console
+        ) as progress:
+            task = progress.add_task("Processing frames...", total=total_frames)
+            faces_detected = 0
+            frames_with_faces = 0
+
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+
+                face_boxes = []
+
+                if use_mediapipe and detector:
+                    # MediaPipe detection
+                    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
+                    detection_result = detector.detect(mp_image)
+
+                    if detection_result.detections:
+                        for detection in detection_result.detections:
+                            bbox = detection.bounding_box
+                            face_boxes.append((bbox.origin_x, bbox.origin_y, bbox.width, bbox.height))
+                else:
+                    # OpenCV Haar Cascade detection
+                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    faces = face_cascade.detectMultiScale(
+                        gray,
+                        scaleFactor=scale_factor,
+                        minNeighbors=min_neighbors,
+                        minSize=(30, 30)
+                    )
+                    for (x, y, w, h) in faces:
+                        face_boxes.append((x, y, w, h))
+
+                if face_boxes:
+                    frames_with_faces += 1
+                    for (x, y, w, h) in face_boxes:
+                        faces_detected += 1
+
+                        # Apply padding
+                        pad_w = int(w * padding_pct)
+                        pad_h = int(h * padding_pct)
+                        x = max(0, x - pad_w)
+                        y = max(0, y - pad_h)
+                        w = min(width - x, w + 2 * pad_w)
+                        h = min(height - y, h + 2 * pad_h)
+
+                        # Extract face region
+                        face_region = frame[y:y+h, x:x+w]
+
+                        if face_region.size > 0:
+                            # Apply blur based on strength
+                            if "Light" in blur_strength:
+                                blurred = cv2.GaussianBlur(face_region, (31, 31), 20)
+                            elif "Medium" in blur_strength:
+                                blurred = cv2.GaussianBlur(face_region, (71, 71), 50)
+                            elif "Heavy" in blur_strength:
+                                blurred = cv2.GaussianBlur(face_region, (151, 151), 100)
+                            else:  # Pixelate
+                                small = cv2.resize(face_region, (max(1, w // 16), max(1, h // 16)), interpolation=cv2.INTER_LINEAR)
+                                blurred = cv2.resize(small, (w, h), interpolation=cv2.INTER_NEAREST)
+
+                            # Replace face region with blurred version
+                            frame[y:y+h, x:x+w] = blurred
+
+                out.write(frame)
+                progress.update(task, advance=1)
+
+        # Clean up detector
+        if detector:
+            detector.close()
+
+        cap.release()
+        out.release()
+
+        console.print(f"[dim]Detected {faces_detected} face instances across {frames_with_faces} frames.[/dim]")
+
+        if faces_detected == 0:
+            console.print("[yellow]No faces detected in the video.[/yellow]")
+            if os.path.exists(temp_video):
+                os.remove(temp_video)
+            press_continue()
+            return
+
+        # Merge with original audio using FFmpeg
+        console.print("[bold cyan]Merging audio...[/bold cyan]")
+
+        if has_audio_stream(file_path):
+            # Combine processed video with original audio
+            import subprocess
+            merge_cmd = [
+                'ffmpeg', '-y',
+                '-i', temp_video,
+                '-i', file_path,
+                '-c:v', 'libx264', '-preset', 'medium', '-crf', '18',
+                '-c:a', 'aac', '-b:a', '192k',
+                '-map', '0:v:0', '-map', '1:a:0',
+                '-shortest',
+                final_output
+            ]
+            result = subprocess.run(merge_cmd, capture_output=True, text=True)
+
+            if result.returncode != 0:
+                console.print("[bold red]Error merging audio.[/bold red]")
+                console.print(f"[dim]{result.stderr[-300:] if result.stderr else 'Unknown error'}[/dim]")
+            else:
+                console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
+        else:
+            # No audio, just re-encode with better codec
+            import subprocess
+            encode_cmd = [
+                'ffmpeg', '-y',
+                '-i', temp_video,
+                '-c:v', 'libx264', '-preset', 'medium', '-crf', '18',
+                final_output
+            ]
+            result = subprocess.run(encode_cmd, capture_output=True, text=True)
+
+            if result.returncode == 0:
+                console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
+            else:
+                console.print("[bold red]Error encoding video.[/bold red]")
+
+    except Exception as e:
+        console.print(f"[bold red]An error occurred: {e}[/bold red]")
+        import traceback
+        console.print(f"[dim]{traceback.format_exc()}[/dim]")
+    finally:
+        # Clean up temp file
+        if os.path.exists(temp_video):
+            os.remove(temp_video)
+        press_continue()

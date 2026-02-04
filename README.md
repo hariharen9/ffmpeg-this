@@ -4,14 +4,30 @@
     <a href="https://pypi.org/project/peg-this/">
         <img src="https://img.shields.io/pypi/v/peg_this?color=blue&label=version" alt="PyPI Version">
     </a>
-    <a href="https://pypi.org/project/peg-this/">
-        <img src="https://img.shields.io/pypi/pyversions/peg_this.svg" alt="PyPI Python Versions">
+    <a href="https://pepy.tech/project/peg-this">
+        <img src="https://static.pepy.tech/badge/peg-this" alt="Downloads">
+    </a>
+    <a href="https://github.com/hariharen9/ffmpeg-this/stargazers">
+        <img src="https://img.shields.io/github/stars/hariharen9/ffmpeg-this?color=yellow" alt="GitHub Stars">
+    </a>
+    <a href="https://github.com/hariharen9/ffmpeg-this/network/members">
+        <img src="https://img.shields.io/github/forks/hariharen9/ffmpeg-this?color=lightgrey" alt="GitHub Forks">
+    </a>
+    <a href="https://github.com/hariharen9/ffmpeg-this/issues">
+        <img src="https://img.shields.io/github/issues/hariharen9/ffmpeg-this?color=red" alt="GitHub Issues">
     </a>
     <a href="https://github.com/hariharen9/ffmpeg-this/blob/main/LICENSE">
         <img src="https://img.shields.io/github/license/hariharen9/ffmpeg-this" alt="License">
     </a>
-    <a href="https://pepy.tech/project/peg-this">
-        <img src="https://static.pepy.tech/badge/peg-this" alt="Downloads">
+    <br>
+    <a href="https://github.com/hariharen9/ffmpeg-this">
+        <img src="https://img.shields.io/badge/platform-win%20%7C%20macos%20%7C%20linux-blueviolet" alt="Supported Platforms">
+    </a>
+    <a href="https://ffmpeg.org/">
+        <img src="https://img.shields.io/badge/FFmpeg-Powered-007808?logo=ffmpeg&logoColor=white" alt="FFmpeg">
+    </a>
+    <a href="https://github.com/openai/whisper">
+        <img src="https://img.shields.io/badge/AI-Whisper-743ec7?logo=openai&logoColor=white" alt="OpenAI Whisper">
     </a>
 </p>
 
@@ -56,6 +72,7 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | | Color Correction | Brightness, contrast, saturation with presets |
 | | Denoise Video | Reduce grain/noise (hqdn3d fast / nlmeans quality) |
 | | Blur/Pixelate Region | Visual selection to blur or pixelate areas |
+| | Auto Blur Faces (AI) | AI-powered automatic face detection and blur |
 | | Add Watermark | Overlay image or text with custom positioning |
 | | Picture-in-Picture | Overlay smaller video on main video |
 | | Video Stabilization | Reduce camera shake (Light/Medium/Heavy) |
@@ -90,6 +107,7 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | **Color Correction** | Any video | Same format | eq filter | Yes |
 | **Denoise** | Any video | Same format | hqdn3d/nlmeans filter | Yes |
 | **Blur/Pixelate** | Any video | Same format | Visual selection + boxblur/scale | Yes |
+| **Auto Blur Faces** | Any video | Same format | MediaPipe AI + frame-by-frame | Yes |
 | **Picture-in-Picture** | Two videos | Same format | overlay filter | Yes |
 | **Stabilize** | Any video | Same format | vidstab (two-pass) | Yes |
 | **Add Watermark** | Any video | Same format | Overlay filter | Yes |

@@ -13,7 +13,7 @@ from peg_this.features.batch import batch_convert
 from peg_this.features.compress import compress_video, change_resolution
 from peg_this.features.convert import convert_file, convert_image, resize_image, rotate_image, flip_image
 from peg_this.features.crop import crop_video, crop_image
-from peg_this.features.effects import add_watermark, merge_audio_video, video_fade, loop_video, color_correction, denoise_video, picture_in_picture, blur_region
+from peg_this.features.effects import add_watermark, merge_audio_video, video_fade, loop_video, color_correction, denoise_video, picture_in_picture, blur_region, auto_blur_faces
 from peg_this.features.frames import extract_frames, split_video
 from peg_this.features.inspect import inspect_file
 from peg_this.features.join import join_videos
@@ -216,6 +216,7 @@ def video_effects_menu():
             "Color Correction",
             "Denoise Video",
             "Blur/Pixelate Region (Visual)",
+            "Auto Blur Faces (AI)",
             "Add Watermark",
             "Picture-in-Picture",
             "Stabilize Video",
@@ -242,6 +243,7 @@ def video_effects_menu():
         "Color Correction": color_correction,
         "Denoise Video": denoise_video,
         "Blur/Pixelate Region (Visual)": blur_region,
+        "Auto Blur Faces (AI)": auto_blur_faces,
         "Picture-in-Picture": picture_in_picture,
         "Stabilize Video": stabilize_video,
     }

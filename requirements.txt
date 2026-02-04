@@ -4,3 +4,5 @@ pyinstaller
 Pillow
 ffmpeg-python
 faster-whisper
+opencv-python
+mediapipe
