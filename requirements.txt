@@ -6,3 +6,5 @@ ffmpeg-python
 faster-whisper
 opencv-python
 mediapipe
+rembg
+onnxruntime

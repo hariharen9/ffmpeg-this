@@ -17,12 +17,12 @@ from peg_this.features.batch import batch_convert
 from peg_this.features.compress import compress_video, change_resolution
 from peg_this.features.convert import convert_file, convert_image, resize_image, rotate_image, flip_image
 from peg_this.features.crop import crop_video, crop_image
-from peg_this.features.effects import add_watermark, merge_audio_video, video_fade, loop_video, color_correction, denoise_video, picture_in_picture, blur_region, auto_blur_faces, audio_visualizer, rotate_video, flip_video
+from peg_this.features.effects import add_watermark, merge_audio_video, video_fade, loop_video, color_correction, denoise_video, picture_in_picture, blur_region, auto_blur_faces, audio_visualizer, rotate_video, flip_video, remove_background
 from peg_this.features.frames import extract_frames, split_video
 from peg_this.features.inspect import inspect_file
 from peg_this.features.join import join_videos
 from peg_this.features.speed import change_speed, reverse_video
-from peg_this.features.subtitle import generate_subtitles
+from peg_this.features.subtitle import generate_subtitles, brainrot_captions
 from peg_this.features.trim import trim_video
 from peg_this.features.advanced import create_slideshow, metadata_editor, stabilize_video, create_gif_advanced
 from peg_this.utils.ffmpeg_utils import check_ffmpeg_ffprobe
@@ -350,9 +350,13 @@ def main_menu():
                 questionary.Separator("─────── Video ───────"),
                 "✂️  Edit (Trim, Crop, Split, Join)",
                 "🎵  Audio (Extract, Remove, Volume, Fade)",
-                "💬  Subtitles (AI Generate)",
                 "🔄  Convert (Format, Compress, GIF)",
                 "✨  Effects (Speed, Color, Denoise, PiP)",
+                questionary.Separator("──────── AI ─────────"),
+                "💬  AI Subtitles (Whisper)",
+                "🔥  Brainrot Captions",
+                "🧠  Background Removal",
+                "👤  Auto Blur Faces",
                 questionary.Separator("─────── Image ───────"),
                 "🖼️  Image Tools",
                 questionary.Separator("─────── Other ───────"),
@@ -374,6 +378,14 @@ def main_menu():
             console.print()
             console.print("[dim italic]Built with ❤️ by [link=https://hariharen.site]Hariharen[/link][/dim italic]")
             break
+        elif "Background Removal" in choice:
+            file_path = select_media_file()
+            if file_path:
+                remove_background(file_path)
+        elif "Brainrot" in choice:
+            file_path = select_media_file(filter_type="video")
+            if file_path:
+                brainrot_captions(file_path)
         elif "Metadata" in choice:
             file_path = select_media_file()
             if file_path:

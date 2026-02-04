@@ -1913,3 +1913,407 @@ def flip_video(file_path):
         console.print(f"[bold red]FFmpeg error: {e.stderr.decode() if e.stderr else str(e)}[/bold red]")
 
     press_continue()
+
+
+def remove_background(file_path):
+    """Remove background from image or video using AI (rembg)."""
+    if not validate_input_file(file_path):
+        press_continue()
+        return
+
+    # Check if it's an image or video
+    ext = Path(file_path).suffix.lower()
+    image_exts = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tiff', '.tif'}
+    video_exts = {'.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.wmv'}
+
+    if ext in image_exts:
+        remove_background_image(file_path)
+    elif ext in video_exts:
+        remove_background_video(file_path)
+    else:
+        console.print(f"[bold red]Unsupported file format: {ext}[/bold red]")
+        console.print("[dim]Supported: JPG, PNG, WebP, BMP, TIFF (images) or MP4, MKV, AVI, MOV, WebM (videos)[/dim]")
+        press_continue()
+
+
+def remove_background_image(file_path):
+    """Remove background from a single image."""
+    try:
+        from rembg import remove
+        from PIL import Image
+    except ImportError:
+        console.print("[bold red]Error: rembg is not installed.[/bold red]")
+        console.print("[yellow]Install it with: pip install rembg onnxruntime[/yellow]")
+        press_continue()
+        return
+
+    bg_option = questionary.select(
+        "What should replace the background?",
+        choices=[
+            "Transparent (PNG)",
+            "Solid Color",
+            "Custom Image",
+            "← Back"
+        ]
+    ).ask()
+
+    if bg_option == "← Back" or bg_option is None:
+        return
+
+    bg_color = None
+    bg_image_path = None
+
+    if bg_option == "Solid Color":
+        color_choice = questionary.select(
+            "Select background color:",
+            choices=[
+                "White",
+                "Black",
+                "Green (Chroma Key)",
+                "Blue (Chroma Key)",
+                "Custom (Hex)"
+            ]
+        ).ask()
+
+        if not color_choice:
+            return
+
+        color_map = {
+            "White": (255, 255, 255),
+            "Black": (0, 0, 0),
+            "Green (Chroma Key)": (0, 255, 0),
+            "Blue (Chroma Key)": (0, 0, 255)
+        }
+
+        if color_choice == "Custom (Hex)":
+            hex_color = questionary.text(
+                "Enter hex color (e.g., #FF5733 or FF5733):"
+            ).ask()
+            if hex_color:
+                hex_color = hex_color.lstrip('#')
+                try:
+                    bg_color = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+                except ValueError:
+                    console.print("[yellow]Invalid hex color, using white.[/yellow]")
+                    bg_color = (255, 255, 255)
+            else:
+                bg_color = (255, 255, 255)
+        else:
+            bg_color = color_map.get(color_choice, (255, 255, 255))
+
+    elif bg_option == "Custom Image":
+        bg_image_path = questionary.text(
+            "Enter path to background image:"
+        ).ask()
+        if not bg_image_path or not os.path.exists(bg_image_path):
+            console.print("[bold red]Background image not found.[/bold red]")
+            press_continue()
+            return
+
+    # Determine output format
+    if bg_option == "Transparent (PNG)":
+        output_ext = ".png"
+        suffix = "nobg"
+    else:
+        output_ext = Path(file_path).suffix
+        suffix = "nobg"
+
+    output_file = f"{Path(file_path).stem}_{suffix}{output_ext}"
+    action_result, final_output = check_output_file(output_file, "Image file")
+
+    if action_result == 'cancel':
+        return
+
+    console.print("[bold cyan]Removing background (this may take a moment on first run)...[/bold cyan]")
+    console.print("[dim]First run will download the AI model (~170MB)[/dim]")
+
+    try:
+        # Load and process image
+        input_image = Image.open(file_path)
+
+        # Remove background
+        output_image = remove(input_image)
+
+        # Apply background replacement if needed
+        if bg_color:
+            # Create solid color background
+            background = Image.new("RGBA", output_image.size, bg_color + (255,))
+            background.paste(output_image, mask=output_image.split()[3])
+            output_image = background.convert("RGB")
+        elif bg_image_path:
+            # Use custom background image
+            bg_img = Image.open(bg_image_path).convert("RGBA")
+            bg_img = bg_img.resize(output_image.size)
+            bg_img.paste(output_image, mask=output_image.split()[3])
+            output_image = bg_img.convert("RGB")
+
+        # Save output
+        if output_ext == ".png" and bg_option == "Transparent (PNG)":
+            output_image.save(final_output, "PNG")
+        else:
+            if output_image.mode == "RGBA":
+                output_image = output_image.convert("RGB")
+            output_image.save(final_output)
+
+        console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
+
+    except Exception as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+
+    press_continue()
+
+
+def remove_background_video(file_path):
+    """Remove background from video frame-by-frame using AI."""
+    import subprocess
+    import tempfile
+    import shutil
+
+    try:
+        from rembg import remove
+        from PIL import Image
+        import cv2
+        import numpy as np
+    except ImportError as e:
+        console.print(f"[bold red]Error: Missing dependency - {e}[/bold red]")
+        console.print("[yellow]Install with: pip install rembg onnxruntime opencv-python[/yellow]")
+        press_continue()
+        return
+
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
+
+    # Get video info
+    try:
+        probe = ffmpeg.probe(file_path)
+        video_stream = next(s for s in probe['streams'] if s['codec_type'] == 'video')
+        width = int(video_stream['width'])
+        height = int(video_stream['height'])
+
+        # Get frame count and fps
+        if 'nb_frames' in video_stream:
+            total_frames = int(video_stream['nb_frames'])
+        else:
+            duration = float(probe['format']['duration'])
+            fps_parts = video_stream.get('r_frame_rate', '30/1').split('/')
+            fps = float(fps_parts[0]) / float(fps_parts[1]) if len(fps_parts) == 2 else float(fps_parts[0])
+            total_frames = int(duration * fps)
+
+        fps_parts = video_stream.get('r_frame_rate', '30/1').split('/')
+        fps = float(fps_parts[0]) / float(fps_parts[1]) if len(fps_parts) == 2 else float(fps_parts[0])
+
+    except Exception as e:
+        console.print(f"[bold red]Error reading video: {e}[/bold red]")
+        press_continue()
+        return
+
+    console.print(f"[dim]Video: {width}x{height}, ~{total_frames} frames, {fps:.2f} FPS[/dim]")
+
+    bg_option = questionary.select(
+        "What should replace the background?",
+        choices=[
+            "Green Screen (Chroma Key)",
+            "Solid Color",
+            "Transparent (WebM)",
+            "Custom Image",
+            "← Back"
+        ]
+    ).ask()
+
+    if bg_option == "← Back" or bg_option is None:
+        return
+
+    bg_color = None
+    bg_image_path = None
+    output_transparent = False
+
+    if bg_option == "Green Screen (Chroma Key)":
+        bg_color = (0, 255, 0)
+    elif bg_option == "Transparent (WebM)":
+        output_transparent = True
+    elif bg_option == "Solid Color":
+        color_choice = questionary.select(
+            "Select background color:",
+            choices=["White", "Black", "Blue", "Custom (Hex)"]
+        ).ask()
+
+        if not color_choice:
+            return
+
+        color_map = {"White": (255, 255, 255), "Black": (0, 0, 0), "Blue": (0, 0, 255)}
+        if color_choice == "Custom (Hex)":
+            hex_color = questionary.text("Enter hex color (e.g., #FF5733):").ask()
+            if hex_color:
+                hex_color = hex_color.lstrip('#')
+                try:
+                    bg_color = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+                except ValueError:
+                    bg_color = (255, 255, 255)
+            else:
+                bg_color = (255, 255, 255)
+        else:
+            bg_color = color_map.get(color_choice, (255, 255, 255))
+
+    elif bg_option == "Custom Image":
+        bg_image_path = questionary.text("Enter path to background image:").ask()
+        if not bg_image_path or not os.path.exists(bg_image_path):
+            console.print("[bold red]Background image not found.[/bold red]")
+            press_continue()
+            return
+
+    # Output format
+    if output_transparent:
+        output_ext = ".webm"
+        suffix = "nobg_transparent"
+    else:
+        output_ext = ".mp4"
+        suffix = "nobg"
+
+    output_file = f"{Path(file_path).stem}_{suffix}{output_ext}"
+    action_result, final_output = check_output_file(output_file, "Video file")
+
+    if action_result == 'cancel':
+        return
+
+    console.print("[bold cyan]Processing video (AI background removal)...[/bold cyan]")
+    console.print("[dim]First run will download the AI model (~170MB)[/dim]")
+    console.print("[dim]This is a slow process - each frame is processed by AI.[/dim]")
+
+    # Create temp directory for frames
+    temp_dir = tempfile.mkdtemp()
+
+    try:
+        # Load background image if specified
+        bg_img = None
+        if bg_image_path:
+            bg_img = Image.open(bg_image_path).convert("RGBA")
+            bg_img = bg_img.resize((width, height))
+
+        # Open video
+        cap = cv2.VideoCapture(file_path)
+        if not cap.isOpened():
+            console.print("[bold red]Error: Cannot open video file.[/bold red]")
+            press_continue()
+            return
+
+        frame_count = 0
+        processed_frames = []
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeRemainingColumn(),
+            console=console
+        ) as progress:
+            task = progress.add_task("Removing backgrounds...", total=total_frames)
+
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+
+                # Convert BGR to RGB
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                pil_image = Image.fromarray(frame_rgb)
+
+                # Remove background
+                output_image = remove(pil_image)
+
+                # Apply background replacement
+                if output_transparent:
+                    # Keep RGBA for transparent output
+                    final_frame = output_image
+                elif bg_color:
+                    background = Image.new("RGBA", output_image.size, bg_color + (255,))
+                    background.paste(output_image, mask=output_image.split()[3])
+                    final_frame = background.convert("RGB")
+                elif bg_img:
+                    bg_copy = bg_img.copy()
+                    bg_copy.paste(output_image, mask=output_image.split()[3])
+                    final_frame = bg_copy.convert("RGB")
+                else:
+                    final_frame = output_image.convert("RGB")
+
+                # Save frame
+                frame_path = os.path.join(temp_dir, f"frame_{frame_count:06d}.png")
+                final_frame.save(frame_path, "PNG")
+                processed_frames.append(frame_path)
+
+                frame_count += 1
+                progress.update(task, advance=1)
+
+        cap.release()
+
+        if frame_count == 0:
+            console.print("[bold red]No frames were processed.[/bold red]")
+            press_continue()
+            return
+
+        console.print(f"[green]Processed {frame_count} frames. Reassembling video...[/green]")
+
+        # Reassemble video with FFmpeg
+        frame_pattern = os.path.join(temp_dir, "frame_%06d.png")
+
+        if output_transparent:
+            # WebM with alpha channel
+            cmd = [
+                'ffmpeg', '-y' if action_result == 'overwrite' else '-n',
+                '-framerate', str(fps),
+                '-i', frame_pattern,
+                '-c:v', 'libvpx-vp9',
+                '-pix_fmt', 'yuva420p',
+                '-crf', '30',
+                '-b:v', '0',
+                final_output
+            ]
+        else:
+            # MP4 (no alpha)
+            cmd = [
+                'ffmpeg', '-y' if action_result == 'overwrite' else '-n',
+                '-framerate', str(fps),
+                '-i', frame_pattern,
+                '-c:v', 'libx264',
+                '-pix_fmt', 'yuv420p',
+                '-crf', '18',
+                '-preset', 'medium',
+                final_output
+            ]
+
+        # Add audio if present
+        if has_audio_stream(file_path):
+            # We need to add audio from original file
+            cmd_with_audio = [
+                'ffmpeg', '-y' if action_result == 'overwrite' else '-n',
+                '-framerate', str(fps),
+                '-i', frame_pattern,
+                '-i', file_path,
+                '-map', '0:v',
+                '-map', '1:a?',
+            ]
+            if output_transparent:
+                cmd_with_audio.extend(['-c:v', 'libvpx-vp9', '-pix_fmt', 'yuva420p', '-crf', '30', '-b:v', '0'])
+            else:
+                cmd_with_audio.extend(['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'medium'])
+            cmd_with_audio.extend(['-c:a', 'copy', '-shortest', final_output])
+            cmd = cmd_with_audio
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+
+        if result.returncode == 0:
+            console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
+        else:
+            console.print("[bold red]Failed to create output video.[/bold red]")
+            if result.stderr:
+                error_lines = result.stderr.strip().split('\n')[-3:]
+                console.print(f"[dim]{' '.join(error_lines)}[/dim]")
+
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Operation cancelled by user.[/yellow]")
+    except Exception as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+    finally:
+        # Cleanup temp directory
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+    press_continue()

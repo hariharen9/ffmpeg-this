@@ -51,6 +51,7 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | | Compress Video | Target file size (e.g., 25MB for Discord) or CRF quality presets |
 | | Change Resolution | Scale to 4K, 1080p, 720p, 480p, or custom resolution |
 | **Subtitles** | AI Transcription | Generate subtitles using Whisper AI (7 model sizes available) |
+| | Brainrot Captions | TikTok/Reels style animated word-by-word captions (5 styles) |
 | | Sidecar Export | Save as `.srt`, `.vtt`, `.txt`, or `.lrc` files |
 | | Soft Subtitles | Embed toggleable subtitle track into video |
 | | Hard Subtitles | Burn permanent subtitles directly into video |
@@ -74,11 +75,13 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | | Color Correction | Brightness, contrast, saturation with presets |
 | | Denoise Video | Reduce grain/noise (hqdn3d fast / nlmeans quality) |
 | | Blur/Pixelate Region | Visual selection to blur or pixelate areas |
-| | Auto Blur Faces (AI) | AI-powered automatic face detection and blur |
 | | Add Watermark | Overlay image or text with custom positioning |
 | | Picture-in-Picture | Overlay smaller video on main video |
 | | Video Stabilization | Reduce camera shake (Light/Medium/Heavy) |
 | | Extract Frames | Export single frame, every N seconds, or all frames as images |
+| **AI** | Background Removal | AI-powered background removal for images and videos (rembg) |
+| | Auto Blur Faces | AI face detection and automatic blurring (OpenCV/MediaPipe) |
+| | Brainrot Captions | TikTok-style word-by-word animated captions with Whisper |
 | **Image** | Resize | Scale images with aspect ratio preservation |
 | | Rotate | Rotate 90°, 180°, or 270° |
 | | Flip | Flip horizontally or vertically |
@@ -118,6 +121,8 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | **Add Watermark** | Any video | Same format | Overlay filter | Yes |
 | **Extract Frames** | Any video | PNG/JPG images | Frame extraction | N/A |
 | **To GIF** | Any video | Animated GIF | 2-pass palette optimization | Yes |
+| **Background Removal** | Image/Video | PNG/WebM/MP4 | rembg AI (U2-Net) | Yes |
+| **Brainrot Captions** | Any video | Same format | Whisper + ASS subtitles | Yes |
 
 ### Audio Operations
 

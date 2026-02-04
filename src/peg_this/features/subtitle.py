@@ -395,3 +395,352 @@ def generate_subtitles(file_path):
             console.print(f"[bold red]Unexpected error: {e}[/bold red]")
 
     press_continue()
+
+
+def brainrot_captions(file_path):
+    """Generate TikTok/Reels style animated captions with word-by-word timing."""
+    import subprocess
+
+    if not validate_input_file(file_path):
+        press_continue()
+        return
+
+    if not has_audio_stream(file_path):
+        console.print("[bold red]Error: File has no audio stream.[/bold red]")
+        console.print("[dim]Captions require audio to transcribe.[/dim]")
+        press_continue()
+        return
+
+    try:
+        from faster_whisper import WhisperModel
+    except ImportError:
+        console.print("[bold red]Error: faster-whisper is not installed.[/bold red]")
+        console.print("[yellow]Install it with: pip install faster-whisper[/yellow]")
+        press_continue()
+        return
+
+    # Check video resolution for font sizing
+    try:
+        probe = ffmpeg.probe(file_path)
+        video_stream = next(s for s in probe['streams'] if s['codec_type'] == 'video')
+        video_height = int(video_stream['height'])
+        video_width = int(video_stream['width'])
+    except Exception:
+        video_height = 1080
+        video_width = 1920
+
+    duration = get_video_duration(file_path)
+    console.print(f"\n[bold cyan]Brainrot Captions Generator[/bold cyan]")
+    if duration > 0:
+        console.print(f"[dim]Video duration: {format_duration(duration)}[/dim]")
+
+    # Style selection
+    style = questionary.select(
+        "Select caption style:",
+        choices=[
+            "Classic (White + Black outline)",
+            "Highlighted (Current word in yellow)",
+            "Colorful (Rainbow gradient)",
+            "Neon Glow (Cyan with glow effect)",
+            "Bold Impact (All caps, heavy)",
+            "← Back"
+        ]
+    ).ask()
+
+    if style == "← Back" or style is None:
+        return
+
+    # Position selection
+    position = questionary.select(
+        "Caption position:",
+        choices=[
+            "Center (Default)",
+            "Bottom Third",
+            "Top Third",
+        ]
+    ).ask()
+
+    if not position:
+        return
+
+    # Model selection - smaller models for speed since we need word-level
+    model_choice = questionary.select(
+        "Select Whisper model:",
+        choices=[
+            "tiny.en (fastest, ~75MB)",
+            "base.en (fast, ~150MB)",
+            "small.en (balanced, ~500MB)",
+            "small (multilingual, ~500MB)",
+        ],
+        default="base.en (fast, ~150MB)"
+    ).ask()
+
+    if not model_choice:
+        return
+
+    model_name = model_choice.split(" ")[0]
+
+    # Output file
+    input_p = Path(file_path)
+    output_path = input_p.with_name(f"{input_p.stem}_brainrot{input_p.suffix}")
+    action_result, final_output = check_output_file(str(output_path), "Video file")
+
+    if action_result == 'cancel':
+        console.print("[yellow]Operation cancelled.[/yellow]")
+        press_continue()
+        return
+
+    if not check_disk_space(file_path, multiplier=2):
+        return
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Extract audio
+        wav_path = extract_audio_for_whisper(file_path, temp_dir)
+        if not wav_path:
+            press_continue()
+            return
+
+        console.print(f"[cyan]Loading Whisper model '{model_name}'...[/cyan]")
+
+        try:
+            model = WhisperModel(model_name, device="cpu", compute_type="int8")
+        except Exception as e:
+            console.print(f"[bold red]Failed to load model: {e}[/bold red]")
+            press_continue()
+            return
+
+        console.print("[cyan]Transcribing with word-level timestamps...[/cyan]")
+
+        try:
+            segments_generator, info = model.transcribe(
+                wav_path,
+                beam_size=5,
+                word_timestamps=True,
+                vad_filter=True,
+            )
+            segments = list(segments_generator)
+        except Exception as e:
+            console.print(f"[bold red]Transcription failed: {e}[/bold red]")
+            press_continue()
+            return
+
+        if not segments:
+            console.print("[bold yellow]No speech detected in audio.[/bold yellow]")
+            press_continue()
+            return
+
+        # Collect all words with timestamps
+        all_words = []
+        for segment in segments:
+            if segment.words:
+                for word in segment.words:
+                    all_words.append({
+                        'text': word.word.strip(),
+                        'start': word.start,
+                        'end': word.end
+                    })
+
+        if not all_words:
+            console.print("[bold yellow]No word-level timestamps available.[/bold yellow]")
+            console.print("[dim]Try using a different model.[/dim]")
+            press_continue()
+            return
+
+        console.print(f"[green]Found {len(all_words)} words[/green]")
+
+        # Generate ASS subtitle file
+        ass_path = os.path.join(temp_dir, "captions.ass")
+
+        # Calculate font size based on video height
+        base_font_size = int(video_height / 12)  # Roughly 90px for 1080p
+
+        # Position calculation
+        if "Center" in position:
+            margin_v = int(video_height * 0.4)  # 40% from bottom = center-ish
+        elif "Bottom" in position:
+            margin_v = int(video_height * 0.15)  # 15% from bottom
+        else:  # Top
+            margin_v = int(video_height * 0.75)  # 75% from bottom = top area
+
+        # Style-specific settings
+        style_configs = {
+            "Classic": {
+                "primary_color": "&H00FFFFFF",  # White
+                "outline_color": "&H00000000",  # Black
+                "outline_width": 4,
+                "shadow": 2,
+                "bold": -1,
+                "highlight_color": None
+            },
+            "Highlighted": {
+                "primary_color": "&H00FFFFFF",  # White
+                "outline_color": "&H00000000",  # Black
+                "outline_width": 3,
+                "shadow": 1,
+                "bold": -1,
+                "highlight_color": "&H0000FFFF"  # Yellow (BGR format)
+            },
+            "Colorful": {
+                "primary_color": "&H00FF00FF",  # Magenta
+                "outline_color": "&H00000000",  # Black
+                "outline_width": 3,
+                "shadow": 2,
+                "bold": -1,
+                "highlight_color": None,
+                "rainbow": True
+            },
+            "Neon": {
+                "primary_color": "&H00FFFF00",  # Cyan
+                "outline_color": "&H00FF00FF",  # Magenta
+                "outline_width": 2,
+                "shadow": 4,
+                "bold": -1,
+                "highlight_color": None
+            },
+            "Bold": {
+                "primary_color": "&H00FFFFFF",  # White
+                "outline_color": "&H00000000",  # Black
+                "outline_width": 5,
+                "shadow": 3,
+                "bold": -1,
+                "highlight_color": None,
+                "uppercase": True
+            }
+        }
+
+        # Get style config
+        style_key = style.split(" ")[0]
+        config = style_configs.get(style_key, style_configs["Classic"])
+
+        # Rainbow colors for Colorful style
+        rainbow_colors = [
+            "&H000000FF",  # Red
+            "&H000080FF",  # Orange
+            "&H0000FFFF",  # Yellow
+            "&H0000FF00",  # Green
+            "&H00FFFF00",  # Cyan
+            "&H00FF0000",  # Blue
+            "&H00FF00FF",  # Magenta
+        ]
+
+        # Generate ASS content
+        ass_content = f"""[Script Info]
+Title: Brainrot Captions
+ScriptType: v4.00+
+PlayResX: {video_width}
+PlayResY: {video_height}
+WrapStyle: 0
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Impact,{base_font_size},{config['primary_color']},&H000000FF,{config['outline_color']},&H00000000,{config['bold']},0,0,0,100,100,0,0,1,{config['outline_width']},{config['shadow']},2,10,10,{margin_v},1
+Style: Highlight,Impact,{base_font_size},{config.get('highlight_color', '&H0000FFFF')},&H000000FF,{config['outline_color']},&H00000000,{config['bold']},0,0,0,100,100,0,0,1,{config['outline_width']},{config['shadow']},2,10,10,{margin_v},1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+"""
+
+        def format_ass_time(seconds):
+            """Format time for ASS format (H:MM:SS.cc)"""
+            h = int(seconds // 3600)
+            m = int((seconds % 3600) // 60)
+            s = int(seconds % 60)
+            cs = int((seconds % 1) * 100)
+            return f"{h}:{m:02d}:{s:02d}.{cs:02d}"
+
+        # Group words into phrases (3-5 words each for readability)
+        phrases = []
+        current_phrase = []
+        words_per_phrase = 4
+
+        for i, word in enumerate(all_words):
+            current_phrase.append(word)
+            if len(current_phrase) >= words_per_phrase or i == len(all_words) - 1:
+                if current_phrase:
+                    phrases.append(current_phrase)
+                    current_phrase = []
+
+        # Generate events - show phrase with highlighted current word
+        for phrase in phrases:
+            phrase_start = phrase[0]['start']
+            phrase_end = phrase[-1]['end']
+
+            # For each word in the phrase, create an event highlighting that word
+            for word_idx, word in enumerate(phrase):
+                word_start = word['start']
+                word_end = word['end']
+
+                # Build the text with current word highlighted
+                text_parts = []
+                for j, w in enumerate(phrase):
+                    word_text = w['text']
+
+                    # Apply uppercase if Bold style
+                    if config.get('uppercase'):
+                        word_text = word_text.upper()
+
+                    if j == word_idx:
+                        # Current word - apply highlight or scale effect
+                        if config.get('highlight_color'):
+                            text_parts.append(f"{{\\c{config['highlight_color']}\\fscx110\\fscy110}}{word_text}{{\\c{config['primary_color']}\\fscx100\\fscy100}}")
+                        elif config.get('rainbow'):
+                            color = rainbow_colors[j % len(rainbow_colors)]
+                            text_parts.append(f"{{\\c{color}\\fscx115\\fscy115}}{word_text}{{\\fscx100\\fscy100}}")
+                        else:
+                            text_parts.append(f"{{\\fscx110\\fscy110}}{word_text}{{\\fscx100\\fscy100}}")
+                    else:
+                        if config.get('rainbow'):
+                            color = rainbow_colors[j % len(rainbow_colors)]
+                            text_parts.append(f"{{\\c{color}}}{word_text}")
+                        else:
+                            text_parts.append(word_text)
+
+                full_text = " ".join(text_parts)
+
+                # Add subtle animation
+                full_text = f"{{\\fad(50,50)}}{full_text}"
+
+                start_time = format_ass_time(word_start)
+                end_time = format_ass_time(word_end)
+
+                ass_content += f"Dialogue: 0,{start_time},{end_time},Default,,0,0,0,,{full_text}\n"
+
+        # Write ASS file
+        with open(ass_path, 'w', encoding='utf-8') as f:
+            f.write(ass_content)
+
+        console.print("[cyan]Burning captions into video...[/cyan]")
+        console.print("[dim]This requires re-encoding and may take a while...[/dim]")
+
+        # Escape path for ASS filter
+        ass_path_escaped = ass_path.replace('\\', '/').replace(':', '\\:').replace("'", "\\'")
+
+        # Build FFmpeg command
+        cmd = ['ffmpeg']
+        if action_result == 'overwrite':
+            cmd.append('-y')
+
+        cmd.extend([
+            '-i', file_path,
+            '-vf', f"ass='{ass_path_escaped}'",
+            '-c:v', 'libx264',
+            '-preset', 'medium',
+            '-crf', '18',
+            '-c:a', 'copy',
+            '-pix_fmt', 'yuv420p',
+            final_output
+        ])
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+
+        if result.returncode == 0:
+            console.print(f"[bold green]Successfully created {final_output}[/bold green]")
+        else:
+            console.print("[bold red]Failed to burn captions.[/bold red]")
+            if result.stderr:
+                error_lines = result.stderr.strip().split('\n')
+                error_found = [l for l in error_lines if 'Error' in l or 'error' in l]
+                if error_found:
+                    console.print(f"[dim]{error_found[-1]}[/dim]")
+
+    press_continue()
