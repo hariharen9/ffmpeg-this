@@ -7,7 +7,8 @@ from rich.console import Console
 
 from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream
 from peg_this.utils.validation import (
-    validate_input_file, check_output_file, check_disk_space, press_continue
+    validate_input_file, check_output_file, check_disk_space, press_continue,
+    get_video_duration, format_duration, validate_time_input, check_has_video_stream
 )
 
 console = Console()
@@ -243,3 +244,956 @@ def merge_audio_video(file_path):
         console.print("[bold red]Merge failed.[/bold red]")
 
     press_continue()
+
+
+def video_fade(file_path):
+    """Apply fade in/out effects to video."""
+    if not validate_input_file(file_path):
+        press_continue()
+        return
+
+    if not check_has_video_stream(file_path):
+        console.print("[bold red]Error: No video stream found in the file.[/bold red]")
+        press_continue()
+        return
+
+    duration = get_video_duration(file_path)
+
+    if duration <= 0:
+        console.print("[bold red]Error: Could not determine video duration.[/bold red]")
+        press_continue()
+        return
+
+    console.print(f"[dim]Video duration: {format_duration(duration)}[/dim]")
+
+    fade_type = questionary.select(
+        "What type of video fade?",
+        choices=[
+            "Fade In (from black)",
+            "Fade Out (to black)",
+            "Both (fade in and out)",
+            "← Back"
+        ]
+    ).ask()
+
+    if fade_type == "← Back" or fade_type is None:
+        return
+
+    # Fade color
+    fade_color = questionary.select(
+        "Fade color:",
+        choices=[
+            "Black (default)",
+            "White"
+        ]
+    ).ask()
+
+    if fade_color is None:
+        return
+
+    color = "black" if "Black" in fade_color else "white"
+
+    fade_in_secs = 0
+    fade_out_secs = 0
+
+    if "In" in fade_type or "Both" in fade_type:
+        fade_in_dur = questionary.text(
+            "Fade in duration (seconds):",
+            default="1"
+        ).ask()
+
+        if fade_in_dur is None:
+            return
+
+        fade_in_secs = validate_time_input(fade_in_dur, duration, "Fade in duration")
+        if fade_in_secs is None:
+            press_continue()
+            return
+
+    if "Out" in fade_type or "Both" in fade_type:
+        fade_out_dur = questionary.text(
+            "Fade out duration (seconds):",
+            default="1"
+        ).ask()
+
+        if fade_out_dur is None:
+            return
+
+        fade_out_secs = validate_time_input(fade_out_dur, duration, "Fade out duration")
+        if fade_out_secs is None:
+            press_continue()
+            return
+
+    suffix = "video_fade"
+    output_file = f"{Path(file_path).stem}_{suffix}{Path(file_path).suffix}"
+    action_result, final_output = check_output_file(output_file, "Output file")
+
+    if action_result == 'cancel':
+        console.print("[yellow]Operation cancelled.[/yellow]")
+        press_continue()
+        return
+
+    input_stream = ffmpeg.input(file_path)
+    video = input_stream.video
+
+    # Apply fade in
+    if fade_in_secs > 0:
+        video = video.filter('fade', t='in', st=0, d=fade_in_secs, c=color)
+
+    # Apply fade out
+    if fade_out_secs > 0:
+        start_time = duration - fade_out_secs
+        video = video.filter('fade', t='out', st=start_time, d=fade_out_secs, c=color)
+
+    if has_audio_stream(file_path):
+        stream = ffmpeg.output(video, input_stream.audio, final_output, **{'c:a': 'copy'})
+    else:
+        stream = ffmpeg.output(video, final_output)
+
+    if action_result == 'overwrite':
+        stream = stream.overwrite_output()
+
+    if run_command(stream, "Applying video fade...", show_progress=True):
+        console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
+    else:
+        console.print("[bold red]Failed to apply video fade.[/bold red]")
+
+    press_continue()
+
+
+def loop_video(file_path):
+    """Loop a video multiple times or to a target duration."""
+    if not validate_input_file(file_path):
+        press_continue()
+        return
+
+    if not check_has_video_stream(file_path):
+        console.print("[bold red]Error: No video stream found in the file.[/bold red]")
+        press_continue()
+        return
+
+    duration = get_video_duration(file_path)
+
+    if duration <= 0:
+        console.print("[bold red]Error: Could not determine video duration.[/bold red]")
+        press_continue()
+        return
+
+    console.print(f"[dim]Video duration: {format_duration(duration)}[/dim]")
+
+    loop_method = questionary.select(
+        "How would you like to loop?",
+        choices=[
+            "Loop N times",
+            "Loop to target duration",
+            "← Back"
+        ]
+    ).ask()
+
+    if loop_method == "← Back" or loop_method is None:
+        return
+
+    loop_count = 1
+
+    if "N times" in loop_method:
+        count = questionary.text(
+            "How many times to loop? (2 = play twice, 3 = play 3 times):",
+            default="2"
+        ).ask()
+
+        if count is None:
+            return
+
+        try:
+            loop_count = int(count)
+            if loop_count < 1:
+                console.print("[bold red]Loop count must be at least 1.[/bold red]")
+                press_continue()
+                return
+        except ValueError:
+            console.print("[bold red]Invalid number.[/bold red]")
+            press_continue()
+            return
+
+        console.print(f"[dim]Output will be {format_duration(duration * loop_count)}[/dim]")
+
+    else:  # Target duration
+        target = questionary.text(
+            "Target duration (e.g., 60 for 60 seconds, 1:30 for 90 seconds):",
+            default="60"
+        ).ask()
+
+        if target is None:
+            return
+
+        target_secs = validate_time_input(target, None, "Target duration")
+        if target_secs is None:
+            press_continue()
+            return
+
+        # Calculate how many loops needed
+        loop_count = int(target_secs / duration) + 1
+        console.print(f"[dim]Will loop {loop_count} times to exceed {format_duration(target_secs)}[/dim]")
+
+    suffix = f"looped_{loop_count}x"
+    output_file = f"{Path(file_path).stem}_{suffix}{Path(file_path).suffix}"
+    action_result, final_output = check_output_file(output_file, "Output file")
+
+    if action_result == 'cancel':
+        console.print("[yellow]Operation cancelled.[/yellow]")
+        press_continue()
+        return
+
+    # Use stream_loop for efficient looping
+    input_stream = ffmpeg.input(file_path, stream_loop=loop_count - 1)
+
+    if has_audio_stream(file_path):
+        stream = ffmpeg.output(input_stream, final_output, **{'c': 'copy'})
+    else:
+        stream = ffmpeg.output(input_stream, final_output, **{'c:v': 'copy'})
+
+    if action_result == 'overwrite':
+        stream = stream.overwrite_output()
+
+    if run_command(stream, f"Looping video {loop_count} times...", show_progress=True):
+        console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
+    else:
+        console.print("[bold red]Failed to loop video.[/bold red]")
+
+    press_continue()
+
+
+def color_correction(file_path):
+    """Apply color correction adjustments to video."""
+    if not validate_input_file(file_path):
+        press_continue()
+        return
+
+    if not check_has_video_stream(file_path):
+        console.print("[bold red]Error: No video stream found in the file.[/bold red]")
+        press_continue()
+        return
+
+    console.print("[dim]Adjust brightness, contrast, saturation, and gamma.[/dim]")
+
+    mode = questionary.select(
+        "Color correction mode:",
+        choices=[
+            "Use preset",
+            "Custom adjustments",
+            "← Back"
+        ]
+    ).ask()
+
+    if mode == "← Back" or mode is None:
+        return
+
+    eq_params = {}
+
+    if "preset" in mode:
+        preset = questionary.select(
+            "Select preset:",
+            choices=[
+                "Warm (Orange/Yellow tint)",
+                "Cool (Blue tint)",
+                "Vibrant (High saturation)",
+                "Muted (Low saturation)",
+                "Vintage (Faded look)",
+                "Black & White",
+                "High Contrast",
+                "Brighten",
+                "Darken"
+            ]
+        ).ask()
+
+        if preset is None:
+            return
+
+        presets = {
+            "Warm (Orange/Yellow tint)": {"brightness": "0.05", "saturation": "1.2", "gamma_r": "1.1", "gamma_b": "0.9"},
+            "Cool (Blue tint)": {"brightness": "0", "saturation": "1.1", "gamma_r": "0.9", "gamma_b": "1.1"},
+            "Vibrant (High saturation)": {"saturation": "1.5", "contrast": "1.1"},
+            "Muted (Low saturation)": {"saturation": "0.6", "contrast": "0.95"},
+            "Vintage (Faded look)": {"saturation": "0.8", "contrast": "0.9", "brightness": "0.05", "gamma": "1.1"},
+            "Black & White": {"saturation": "0"},
+            "High Contrast": {"contrast": "1.3", "saturation": "1.1"},
+            "Brighten": {"brightness": "0.1", "gamma": "1.2"},
+            "Darken": {"brightness": "-0.1", "gamma": "0.85"}
+        }
+
+        eq_params = presets.get(preset, {})
+        filter_desc = preset.split(" (")[0]
+
+    else:  # Custom adjustments
+        console.print("[dim]Enter values (leave empty for default):[/dim]")
+        console.print("[dim]Brightness: -1.0 to 1.0 (default: 0)[/dim]")
+        console.print("[dim]Contrast: 0.0 to 2.0 (default: 1.0)[/dim]")
+        console.print("[dim]Saturation: 0.0 to 3.0 (default: 1.0)[/dim]")
+        console.print("[dim]Gamma: 0.1 to 10.0 (default: 1.0)[/dim]")
+
+        brightness = questionary.text("Brightness (-1 to 1):", default="0").ask()
+        contrast = questionary.text("Contrast (0 to 2):", default="1").ask()
+        saturation = questionary.text("Saturation (0 to 3):", default="1").ask()
+        gamma = questionary.text("Gamma (0.1 to 10):", default="1").ask()
+
+        if any(v is None for v in [brightness, contrast, saturation, gamma]):
+            return
+
+        try:
+            eq_params = {
+                "brightness": brightness,
+                "contrast": contrast,
+                "saturation": saturation,
+                "gamma": gamma
+            }
+        except ValueError:
+            console.print("[bold red]Invalid values entered.[/bold red]")
+            press_continue()
+            return
+
+        filter_desc = "Custom color correction"
+
+    suffix = "color_corrected"
+    output_file = f"{Path(file_path).stem}_{suffix}{Path(file_path).suffix}"
+    action_result, final_output = check_output_file(output_file, "Output file")
+
+    if action_result == 'cancel':
+        console.print("[yellow]Operation cancelled.[/yellow]")
+        press_continue()
+        return
+
+    input_stream = ffmpeg.input(file_path)
+    video = input_stream.video.filter('eq', **eq_params)
+
+    if has_audio_stream(file_path):
+        stream = ffmpeg.output(video, input_stream.audio, final_output, **{'c:a': 'copy'})
+    else:
+        stream = ffmpeg.output(video, final_output)
+
+    if action_result == 'overwrite':
+        stream = stream.overwrite_output()
+
+    if run_command(stream, f"Applying {filter_desc}...", show_progress=True):
+        console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
+    else:
+        console.print("[bold red]Failed to apply color correction.[/bold red]")
+
+    press_continue()
+
+
+def denoise_video(file_path):
+    """Reduce video noise using denoising filters."""
+    if not validate_input_file(file_path):
+        press_continue()
+        return
+
+    if not check_has_video_stream(file_path):
+        console.print("[bold red]Error: No video stream found in the file.[/bold red]")
+        press_continue()
+        return
+
+    console.print("[dim]Video denoising reduces grain and noise in footage.[/dim]")
+    console.print("[yellow]Note: Denoising can be slow for long videos.[/yellow]")
+
+    method = questionary.select(
+        "Denoising method:",
+        choices=[
+            "hqdn3d (Fast, good quality)",
+            "nlmeans (Slow, best quality)",
+            "← Back"
+        ]
+    ).ask()
+
+    if method == "← Back" or method is None:
+        return
+
+    strength = questionary.select(
+        "Denoising strength:",
+        choices=[
+            "Light (Subtle, preserves detail)",
+            "Medium (Balanced)",
+            "Heavy (Aggressive, may lose detail)"
+        ]
+    ).ask()
+
+    if strength is None:
+        return
+
+    if "hqdn3d" in method:
+        if "Light" in strength:
+            filter_args = {"luma_spatial": "2", "chroma_spatial": "1.5", "luma_tmp": "3", "chroma_tmp": "2"}
+        elif "Medium" in strength:
+            filter_args = {"luma_spatial": "4", "chroma_spatial": "3", "luma_tmp": "6", "chroma_tmp": "4"}
+        else:
+            filter_args = {"luma_spatial": "6", "chroma_spatial": "4.5", "luma_tmp": "9", "chroma_tmp": "6"}
+        filter_name = "hqdn3d"
+    else:  # nlmeans
+        if "Light" in strength:
+            filter_args = {"s": "3", "p": "5", "r": "9"}
+        elif "Medium" in strength:
+            filter_args = {"s": "5", "p": "7", "r": "11"}
+        else:
+            filter_args = {"s": "8", "p": "9", "r": "15"}
+        filter_name = "nlmeans"
+
+    suffix = "denoised"
+    output_file = f"{Path(file_path).stem}_{suffix}{Path(file_path).suffix}"
+    action_result, final_output = check_output_file(output_file, "Output file")
+
+    if action_result == 'cancel':
+        console.print("[yellow]Operation cancelled.[/yellow]")
+        press_continue()
+        return
+
+    input_stream = ffmpeg.input(file_path)
+    video = input_stream.video.filter(filter_name, **filter_args)
+
+    if has_audio_stream(file_path):
+        stream = ffmpeg.output(video, input_stream.audio, final_output, **{'c:a': 'copy'})
+    else:
+        stream = ffmpeg.output(video, final_output)
+
+    if action_result == 'overwrite':
+        stream = stream.overwrite_output()
+
+    filter_desc = f"{strength.split(' ')[0]} {filter_name} denoising"
+    if run_command(stream, f"Applying {filter_desc}...", show_progress=True):
+        console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
+    else:
+        console.print("[bold red]Failed to denoise video.[/bold red]")
+
+    press_continue()
+
+
+def picture_in_picture(file_path):
+    """Overlay a smaller video on top of the main video."""
+    if not validate_input_file(file_path):
+        press_continue()
+        return
+
+    if not check_has_video_stream(file_path):
+        console.print("[bold red]Error: No video stream found in the file.[/bold red]")
+        press_continue()
+        return
+
+    console.print(f"[dim]Main video: {os.path.basename(file_path)}[/dim]")
+
+    overlay_path = questionary.text(
+        "Enter path to overlay (PiP) video:"
+    ).ask()
+
+    if not overlay_path or not os.path.exists(overlay_path):
+        console.print("[bold red]Overlay video not found.[/bold red]")
+        press_continue()
+        return
+
+    position = questionary.select(
+        "PiP position:",
+        choices=[
+            "Top-Left",
+            "Top-Right",
+            "Bottom-Left",
+            "Bottom-Right",
+            "Center"
+        ]
+    ).ask()
+
+    if position is None:
+        return
+
+    size_percent = questionary.select(
+        "PiP size (relative to main video):",
+        choices=[
+            "15% (Small)",
+            "20% (Default)",
+            "25% (Medium)",
+            "30% (Large)",
+            "40% (Very large)"
+        ]
+    ).ask()
+
+    if size_percent is None:
+        return
+
+    scale = float(size_percent.split("%")[0]) / 100
+
+    # Position mapping with padding
+    padding = 20
+    pos_map = {
+        "Top-Left": (str(padding), str(padding)),
+        "Top-Right": (f"main_w-overlay_w-{padding}", str(padding)),
+        "Bottom-Left": (str(padding), f"main_h-overlay_h-{padding}"),
+        "Bottom-Right": (f"main_w-overlay_w-{padding}", f"main_h-overlay_h-{padding}"),
+        "Center": ("(main_w-overlay_w)/2", "(main_h-overlay_h)/2")
+    }
+    x_pos, y_pos = pos_map.get(position, pos_map["Bottom-Right"])
+
+    suffix = "pip"
+    output_file = f"{Path(file_path).stem}_{suffix}{Path(file_path).suffix}"
+    action_result, final_output = check_output_file(output_file, "Output file")
+
+    if action_result == 'cancel':
+        console.print("[yellow]Operation cancelled.[/yellow]")
+        press_continue()
+        return
+
+    main_input = ffmpeg.input(file_path)
+    overlay_input = ffmpeg.input(overlay_path)
+
+    # Scale overlay video
+    overlay_scaled = overlay_input.video.filter('scale', f"iw*{scale}", f"ih*{scale}")
+
+    # Overlay on main video
+    video = ffmpeg.overlay(main_input.video, overlay_scaled, x=x_pos, y=y_pos, shortest=1)
+
+    if has_audio_stream(file_path):
+        stream = ffmpeg.output(video, main_input.audio, final_output, **{'c:a': 'copy'})
+    else:
+        stream = ffmpeg.output(video, final_output)
+
+    if action_result == 'overwrite':
+        stream = stream.overwrite_output()
+
+    if run_command(stream, "Creating picture-in-picture...", show_progress=True):
+        console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
+    else:
+        console.print("[bold red]Failed to create picture-in-picture.[/bold red]")
+
+    press_continue()
+
+
+def blur_region(file_path):
+    """Apply blur or pixelate effect to selected regions of video."""
+    try:
+        import tkinter as tk
+        from PIL import Image, ImageTk
+    except ImportError:
+        console.print("[bold red]Cannot perform visual selection: tkinter & Pillow are not installed.[/bold red]")
+        console.print("[dim]Install them with: pip install tk Pillow[/dim]")
+        press_continue()
+        return
+
+    if not validate_input_file(file_path):
+        press_continue()
+        return
+
+    if not check_has_video_stream(file_path):
+        console.print("[bold red]Error: No video stream found in the file.[/bold red]")
+        press_continue()
+        return
+
+    duration = get_video_duration(file_path)
+    if duration <= 0:
+        console.print("[bold red]Error: Could not determine video duration.[/bold red]")
+        press_continue()
+        return
+
+    console.print(f"[dim]Video duration: {format_duration(duration)}[/dim]")
+    console.print("[dim]Apply blur or pixelate effect to selected regions.[/dim]")
+
+    # Select effect type
+    effect_type = questionary.select(
+        "Select effect type:",
+        choices=[
+            "Blur (Gaussian blur)",
+            "Pixelate (Mosaic/Block effect)",
+            "← Back"
+        ]
+    ).ask()
+
+    if effect_type == "← Back" or effect_type is None:
+        return
+
+    is_blur = "Blur" in effect_type
+
+    # Effect strength
+    strength = questionary.select(
+        f"{'Blur' if is_blur else 'Pixelate'} strength:",
+        choices=[
+            "Light",
+            "Medium (Recommended)",
+            "Heavy",
+            "Extreme (Almost unrecognizable)"
+        ]
+    ).ask()
+
+    if strength is None:
+        return
+
+    # Time range options
+    time_mode = questionary.select(
+        "Apply effect for:",
+        choices=[
+            "Entire video",
+            "Specific time range",
+            "← Back"
+        ]
+    ).ask()
+
+    if time_mode == "← Back" or time_mode is None:
+        return
+
+    start_time = 0
+    end_time = duration
+
+    if "Specific" in time_mode:
+        console.print(f"[dim]Video duration: {format_duration(duration)}[/dim]")
+
+        start_str = questionary.text(
+            "Start time (e.g., 0, 1:30, 0:05):",
+            default="0"
+        ).ask()
+
+        if start_str is None:
+            return
+
+        start_time = validate_time_input(start_str, duration, "Start time")
+        if start_time is None:
+            press_continue()
+            return
+
+        end_str = questionary.text(
+            f"End time (max: {format_duration(duration)}):",
+            default=format_duration(duration)
+        ).ask()
+
+        if end_str is None:
+            return
+
+        end_time = validate_time_input(end_str, duration, "End time")
+        if end_time is None:
+            press_continue()
+            return
+
+        if end_time <= start_time:
+            console.print("[bold red]End time must be after start time.[/bold red]")
+            press_continue()
+            return
+
+    # Extract preview frame
+    preview_frame = f"preview_blur_{Path(file_path).stem}.jpg"
+    try:
+        # Get frame from the middle of the effect time range
+        preview_time = start_time + (end_time - start_time) / 2
+
+        run_command(
+            ffmpeg.input(file_path, ss=preview_time).output(preview_frame, vframes=1, **{'q:v': 2}).overwrite_output(),
+            "Extracting preview frame..."
+        )
+
+        if not os.path.exists(preview_frame):
+            console.print("[bold red]Could not extract a frame from the video.[/bold red]")
+            press_continue()
+            return
+
+        # Get video dimensions
+        probe = ffmpeg.probe(file_path)
+        video_stream = next((s for s in probe['streams'] if s['codec_type'] == 'video'), None)
+        if not video_stream:
+            console.print("[bold red]Could not get video dimensions.[/bold red]")
+            press_continue()
+            return
+
+        video_width = int(video_stream['width'])
+        video_height = int(video_stream['height'])
+
+        # Visual region selection with Tkinter
+        regions = []
+        root = tk.Tk()
+        root.title("Blur/Pixelate - Draw rectangles, press 'u' to undo, close when done")
+        root.attributes("-topmost", True)
+
+        img = Image.open(preview_frame)
+
+        # Calculate scale factor for display
+        max_display_width = min(root.winfo_screenwidth() - 100, video_width)
+        max_display_height = min(root.winfo_screenheight() - 150, video_height)
+
+        display_scale = min(max_display_width / video_width, max_display_height / video_height, 1.0)
+        display_width = int(video_width * display_scale)
+        display_height = int(video_height * display_scale)
+
+        if display_scale < 1.0:
+            img = img.resize((display_width, display_height), Image.Resampling.LANCZOS)
+
+        img_tk = ImageTk.PhotoImage(img, master=root)
+
+        # Main frame
+        main_frame = tk.Frame(root)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Canvas for drawing
+        canvas = tk.Canvas(main_frame, width=display_width, height=display_height, cursor="cross")
+        canvas.pack()
+        canvas.create_image(0, 0, anchor=tk.NW, image=img_tk)
+
+        # Instructions frame
+        instructions = tk.Frame(root)
+        instructions.pack(fill=tk.X, padx=10, pady=5)
+
+        tk.Label(
+            instructions,
+            text="Draw rectangles to select regions. Press 'u' to undo. Close window when done.",
+            font=("Arial", 10)
+        ).pack()
+
+        # Status label
+        status_var = tk.StringVar(value="Regions: 0")
+        status_label = tk.Label(instructions, textvariable=status_var, font=("Arial", 10, "bold"))
+        status_label.pack()
+
+        # Done button
+        def on_done():
+            root.quit()
+            root.destroy()
+
+        done_btn = tk.Button(instructions, text="Done - Apply Effect", command=on_done,
+                            bg="#4CAF50", fg="white", font=("Arial", 10, "bold"), padx=20, pady=5)
+        done_btn.pack(pady=10)
+
+        rect_data = {"current_rect": None, "start_x": 0, "start_y": 0}
+        drawn_rects = []
+
+        def on_press(event):
+            rect_data["start_x"] = event.x
+            rect_data["start_y"] = event.y
+            rect_data["current_rect"] = canvas.create_rectangle(
+                event.x, event.y, event.x, event.y,
+                outline='red', width=2, dash=(4, 2)
+            )
+
+        def on_drag(event):
+            if rect_data["current_rect"]:
+                canvas.coords(
+                    rect_data["current_rect"],
+                    rect_data["start_x"], rect_data["start_y"],
+                    event.x, event.y
+                )
+
+        def on_release(event):
+            if rect_data["current_rect"]:
+                x1, y1 = rect_data["start_x"], rect_data["start_y"]
+                x2, y2 = event.x, event.y
+
+                # Normalize coordinates
+                x1, x2 = min(x1, x2), max(x1, x2)
+                y1, y2 = min(y1, y2), max(y1, y2)
+
+                # Check minimum size
+                if (x2 - x1) >= 10 and (y2 - y1) >= 10:
+                    # Convert to actual video coordinates
+                    actual_x1 = int(x1 / display_scale)
+                    actual_y1 = int(y1 / display_scale)
+                    actual_x2 = int(x2 / display_scale)
+                    actual_y2 = int(y2 / display_scale)
+
+                    # Clamp to video bounds
+                    actual_x1 = max(0, min(actual_x1, video_width))
+                    actual_y1 = max(0, min(actual_y1, video_height))
+                    actual_x2 = max(0, min(actual_x2, video_width))
+                    actual_y2 = max(0, min(actual_y2, video_height))
+
+                    regions.append({
+                        "x": actual_x1,
+                        "y": actual_y1,
+                        "w": actual_x2 - actual_x1,
+                        "h": actual_y2 - actual_y1
+                    })
+
+                    # Update rectangle to solid line
+                    canvas.delete(rect_data["current_rect"])
+                    final_rect = canvas.create_rectangle(
+                        x1, y1, x2, y2,
+                        outline='green', width=2
+                    )
+                    drawn_rects.append(final_rect)
+
+                    # Add region number label
+                    label = canvas.create_text(
+                        x1 + 5, y1 + 5,
+                        text=str(len(regions)),
+                        anchor=tk.NW,
+                        fill='green',
+                        font=('Arial', 12, 'bold')
+                    )
+                    drawn_rects.append(label)
+
+                    status_var.set(f"Regions: {len(regions)}")
+                else:
+                    canvas.delete(rect_data["current_rect"])
+
+                rect_data["current_rect"] = None
+
+        def undo_last(event=None):
+            if regions and len(drawn_rects) >= 2:
+                regions.pop()
+                canvas.delete(drawn_rects.pop())
+                canvas.delete(drawn_rects.pop())
+                status_var.set(f"Regions: {len(regions)}")
+
+        canvas.bind("<ButtonPress-1>", on_press)
+        canvas.bind("<B1-Motion>", on_drag)
+        canvas.bind("<ButtonRelease-1>", on_release)
+        root.bind("u", undo_last)
+        root.bind("U", undo_last)
+        root.bind("<Return>", lambda e: on_done())
+        root.bind("<Escape>", lambda e: on_done())
+        root.protocol("WM_DELETE_WINDOW", on_done)
+
+        console.print("[bold cyan]Instructions: Draw rectangles around areas to blur/pixelate. Press 'u' to undo. Click 'Done' or press Enter when finished.[/bold cyan]")
+
+        root.lift()
+        root.after_idle(root.attributes, '-topmost', False)
+        root.mainloop()
+
+        if not regions:
+            console.print("[bold yellow]No regions selected. Operation cancelled.[/bold yellow]")
+            return
+
+        console.print(f"[dim]Selected {len(regions)} region(s) to process.[/dim]")
+
+        # Set strength parameters
+        if is_blur:
+            strength_map = {
+                "Light": 10,
+                "Medium (Recommended)": 20,
+                "Heavy": 40,
+                "Extreme (Almost unrecognizable)": 80
+            }
+            blur_amount = strength_map.get(strength, 20)
+        else:
+            strength_map = {
+                "Light": 8,
+                "Medium (Recommended)": 16,
+                "Heavy": 32,
+                "Extreme (Almost unrecognizable)": 64
+            }
+            pixel_size = strength_map.get(strength, 16)
+
+        suffix = "blurred" if is_blur else "pixelated"
+        output_file = f"{Path(file_path).stem}_{suffix}{Path(file_path).suffix}"
+        action_result, final_output = check_output_file(output_file, "Output file")
+
+        if action_result == 'cancel':
+            console.print("[yellow]Operation cancelled.[/yellow]")
+            return
+
+        # Build FFmpeg filter chain for multiple regions
+        # Strategy: For each region, crop -> blur -> overlay back
+        import subprocess
+
+        filter_complex_parts = []
+        last_video = "[0:v]"
+        valid_region_count = 0
+
+        # Determine enable expression for time-based effect
+        # Note: In filter_complex, commas in expressions don't need escaping when using quotes
+        if "Specific" in time_mode:
+            enable_expr = f"between(t,{start_time},{end_time})"
+        else:
+            enable_expr = None
+
+        for region in regions:
+            x, y, w, h = region['x'], region['y'], region['w'], region['h']
+
+            # Clamp to video bounds first
+            x = max(0, min(x, video_width - 2))
+            y = max(0, min(y, video_height - 2))
+            w = max(2, min(w, video_width - x))
+            h = max(2, min(h, video_height - y))
+
+            # Ensure dimensions are even (required by video encoders)
+            # Reduce by 1 if odd (to stay within bounds)
+            w = w if w % 2 == 0 else w - 1
+            h = h if h % 2 == 0 else h - 1
+
+            # Skip if dimensions are too small
+            if w < 2 or h < 2:
+                continue
+
+            i = valid_region_count
+            valid_region_count += 1
+
+            if is_blur:
+                effect_filter = f"boxblur={blur_amount}:{blur_amount}"
+            else:
+                # True pixelate: scale down then up with nearest neighbor
+                scale_factor = max(2, pixel_size // 4)
+                down_w = max(4, w // scale_factor)
+                down_h = max(4, h // scale_factor)
+                # Make sure scaled dimensions are even
+                down_w = down_w if down_w % 2 == 0 else down_w + 1
+                down_h = down_h if down_h % 2 == 0 else down_h + 1
+                effect_filter = f"scale={down_w}:{down_h},scale={w}:{h}:flags=neighbor"
+
+            if enable_expr:
+                # Time-based: overlay with enable
+                # Note: enable expression needs escaped quotes for FFmpeg filter parsing
+                filter_complex_parts.append(
+                    f"{last_video}split[main{i}][copy{i}];"
+                    f"[copy{i}]crop={w}:{h}:{x}:{y},{effect_filter}[blur{i}];"
+                    f"[main{i}][blur{i}]overlay={x}:{y}:enable='{enable_expr}'[out{i}]"
+                )
+            else:
+                # Full video: crop, effect, overlay
+                filter_complex_parts.append(
+                    f"{last_video}split[main{i}][copy{i}];"
+                    f"[copy{i}]crop={w}:{h}:{x}:{y},{effect_filter}[blur{i}];"
+                    f"[main{i}][blur{i}]overlay={x}:{y}[out{i}]"
+                )
+
+            last_video = f"[out{i}]"
+
+        # Check if any valid regions were processed
+        if valid_region_count == 0:
+            console.print("[bold yellow]No valid regions after processing. Operation cancelled.[/bold yellow]")
+            press_continue()
+            return
+
+        filter_complex = ";".join(filter_complex_parts)
+
+        # Build FFmpeg command
+        cmd = ['ffmpeg']
+        if action_result == 'overwrite':
+            cmd.append('-y')
+
+        cmd.extend(['-i', file_path])
+        cmd.extend(['-filter_complex', filter_complex])
+        cmd.extend(['-map', last_video])
+
+        if has_audio_stream(file_path):
+            cmd.extend(['-map', '0:a', '-c:a', 'copy'])
+
+        cmd.extend(['-c:v', 'libx264', '-preset', 'medium', '-crf', '18'])
+        cmd.append(final_output)
+
+        console.print(f"[bold cyan]Applying {'blur' if is_blur else 'pixelate'} to {valid_region_count} region(s)...[/bold cyan]")
+
+        # Debug: show filter info
+        console.print(f"[dim]Video: {video_width}x{video_height}[/dim]")
+        for i, region in enumerate(regions):
+            console.print(f"[dim]Region {i+1}: x={region['x']}, y={region['y']}, w={region['w']}, h={region['h']}[/dim]")
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+
+        if result.returncode == 0:
+            console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
+        else:
+            console.print("[bold red]Failed to apply effect.[/bold red]")
+            if result.stderr:
+                # Find the actual error line (usually after "Error" or at the end)
+                error_lines = result.stderr.strip().split('\n')
+                # Look for lines containing "Error" or get last few lines
+                error_found = [l for l in error_lines if 'Error' in l or 'error' in l or 'Invalid' in l]
+                if error_found:
+                    error_msg = '\n'.join(error_found[-3:])
+                else:
+                    error_msg = '\n'.join(error_lines[-5:])
+                console.print(f"[dim]{error_msg}[/dim]")
+
+    except Exception as e:
+        console.print(f"[bold red]An error occurred: {e}[/bold red]")
+    finally:
+        if os.path.exists(preview_frame):
+            os.remove(preview_frame)
+        press_continue()

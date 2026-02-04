@@ -46,17 +46,31 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | **Audio** | Extract Audio | Rip audio track to MP3, FLAC, or WAV |
 | | Remove Audio | Create silent version of video (keeps video intact) |
 | | Merge Audio | Replace or mix audio track with video |
+| | Adjust Volume | Increase/decrease volume (presets, dB, multiplier) |
+| | Audio Fade In/Out | Fade audio at start/end (6 curve types) |
+| | Normalize Audio | EBU R128, Peak, RMS, or Dynamic normalization |
 | **Effects** | Change Speed | Adjust playback speed (0.25x to 4x) with audio pitch preservation |
 | | Reverse Video | Play video backwards (includes audio) |
+| | Video Fade In/Out | Fade to/from black or white at start/end |
+| | Loop Video | Repeat video N times or to target duration |
+| | Color Correction | Brightness, contrast, saturation with presets |
+| | Denoise Video | Reduce grain/noise (hqdn3d fast / nlmeans quality) |
+| | Blur/Pixelate Region | Visual selection to blur or pixelate areas |
 | | Add Watermark | Overlay image or text with custom positioning |
+| | Picture-in-Picture | Overlay smaller video on main video |
+| | Video Stabilization | Reduce camera shake (Light/Medium/Heavy) |
 | | Extract Frames | Export single frame, every N seconds, or all frames as images |
 | **Image** | Resize | Scale images with aspect ratio preservation |
 | | Rotate | Rotate 90°, 180°, or 270° |
 | | Flip | Flip horizontally or vertically |
 | | Crop | Visual cropping with click-and-drag selection |
+| **Other** | Create Slideshow | Create video from images with background music |
+| | Metadata Editor | View, edit, clear, or copy video metadata |
+| | Create GIF (Advanced) | Custom FPS, size, quality, loop options |
 | **Batch** | Batch Convert | Convert all media files in directory at once |
 
-## Detailed Feature Breakdown
+<details>
+<summary><h2>Detailed Feature Breakdown</h2></summary>
 
 ### Video Operations
 
@@ -71,6 +85,13 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | **Join** | Multiple videos | Single MP4 | Concat filter + normalize | Yes |
 | **Change Speed** | Any video | Same format | setpts + atempo filters | Yes |
 | **Reverse** | Any video | Same format | Reverse filter | Yes |
+| **Video Fade** | Any video | Same format | fade filter | Yes |
+| **Loop Video** | Any video | Same format | stream_loop | No (stream copy) |
+| **Color Correction** | Any video | Same format | eq filter | Yes |
+| **Denoise** | Any video | Same format | hqdn3d/nlmeans filter | Yes |
+| **Blur/Pixelate** | Any video | Same format | Visual selection + boxblur/scale | Yes |
+| **Picture-in-Picture** | Two videos | Same format | overlay filter | Yes |
+| **Stabilize** | Any video | Same format | vidstab (two-pass) | Yes |
 | **Add Watermark** | Any video | Same format | Overlay filter | Yes |
 | **Extract Frames** | Any video | PNG/JPG images | Frame extraction | N/A |
 | **To GIF** | Any video | Animated GIF | 2-pass palette optimization | Yes |
@@ -82,6 +103,9 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | **Extract** | Video with audio | MP3, FLAC, WAV | Preserves original quality for FLAC/WAV |
 | **Remove** | Video with audio | Silent video | Stream copy (fast, no re-encoding) |
 | **Merge** | Video + Audio file | Video with new audio | Replace or mix audio tracks |
+| **Adjust Volume** | Video/Audio | Same format | Presets, multiplier, or dB value |
+| **Audio Fade** | Video/Audio | Same format | 6 curve types (linear, log, exp, sine) |
+| **Normalize** | Video/Audio | Same format | EBU R128, Peak, RMS, Dynamic |
 | **Convert** | Audio file | MP3, FLAC, WAV | Bitrate selection for MP3 |
 
 ### Subtitle Generation
@@ -127,6 +151,8 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | **Image Input** | `.jpg`, `.jpeg`, `.png`, `.webp`, `.bmp`, `.tiff` |
 | **Image Output** | `.jpg`, `.png`, `.webp`, `.bmp`, `.tiff` |
 | **Subtitle Output** | `.srt`, `.vtt`, `.txt`, `.lrc` |
+
+</details>
 
 ## Usage
 

@@ -8,18 +8,19 @@ import questionary
 from prompt_toolkit.keys import Keys
 from rich.console import Console
 
-from peg_this.features.audio import extract_audio, remove_audio
+from peg_this.features.audio import extract_audio, remove_audio, adjust_volume, audio_fade, normalize_audio
 from peg_this.features.batch import batch_convert
 from peg_this.features.compress import compress_video, change_resolution
 from peg_this.features.convert import convert_file, convert_image, resize_image, rotate_image, flip_image
 from peg_this.features.crop import crop_video, crop_image
-from peg_this.features.effects import add_watermark, merge_audio_video
+from peg_this.features.effects import add_watermark, merge_audio_video, video_fade, loop_video, color_correction, denoise_video, picture_in_picture, blur_region
 from peg_this.features.frames import extract_frames, split_video
 from peg_this.features.inspect import inspect_file
 from peg_this.features.join import join_videos
 from peg_this.features.speed import change_speed, reverse_video
 from peg_this.features.subtitle import generate_subtitles
 from peg_this.features.trim import trim_video
+from peg_this.features.advanced import create_slideshow, metadata_editor, stabilize_video, create_gif_advanced
 from peg_this.utils.ffmpeg_utils import check_ffmpeg_ffprobe
 from peg_this.utils.ui_utils import select_media_file
 
@@ -133,6 +134,9 @@ def video_audio_menu():
             "Extract Audio",
             "Remove Audio",
             "Merge Audio with Video",
+            "Adjust Volume",
+            "Audio Fade In/Out",
+            "Normalize Audio",
             questionary.Separator(),
             "← Back"
         ]
@@ -149,6 +153,9 @@ def video_audio_menu():
         "Extract Audio": extract_audio,
         "Remove Audio": remove_audio,
         "Merge Audio with Video": merge_audio_video,
+        "Adjust Volume": adjust_volume,
+        "Audio Fade In/Out": audio_fade,
+        "Normalize Audio": normalize_audio,
     }
 
     if action in actions:
@@ -169,12 +176,19 @@ def video_convert_menu():
             "Convert Format",
             "Compress Video",
             "Change Resolution",
+            "Create GIF (Advanced)",
             questionary.Separator(),
             "← Back"
         ]
     )
 
     if action == "← Back" or action is None:
+        return
+
+    if action == "Create GIF (Advanced)":
+        file_path = select_media_file(filter_type="video")
+        if file_path:
+            create_gif_advanced(file_path)
         return
 
     file_path = select_media_file(filter_type="video")
@@ -197,7 +211,14 @@ def video_effects_menu():
         choices=[
             "Change Speed",
             "Reverse Video",
+            "Video Fade In/Out",
+            "Loop Video",
+            "Color Correction",
+            "Denoise Video",
+            "Blur/Pixelate Region (Visual)",
             "Add Watermark",
+            "Picture-in-Picture",
+            "Stabilize Video",
             "Extract Frames",
             questionary.Separator(),
             "← Back"
@@ -216,6 +237,13 @@ def video_effects_menu():
         "Reverse Video": reverse_video,
         "Add Watermark": add_watermark,
         "Extract Frames": extract_frames,
+        "Video Fade In/Out": video_fade,
+        "Loop Video": loop_video,
+        "Color Correction": color_correction,
+        "Denoise Video": denoise_video,
+        "Blur/Pixelate Region (Visual)": blur_region,
+        "Picture-in-Picture": picture_in_picture,
+        "Stabilize Video": stabilize_video,
     }
 
     if action in actions:
@@ -272,13 +300,15 @@ def main_menu():
             choices=[
                 questionary.Separator("─────── Video ───────"),
                 "✂️  Edit (Trim, Crop, Split, Join)",
-                "🎵  Audio (Extract, Remove, Merge)",
+                "🎵  Audio (Extract, Remove, Volume, Fade)",
                 "💬  Subtitles (AI Generate)",
-                "🔄  Convert (Format, Compress, Resize)",
-                "✨  Effects (Speed, Reverse, Watermark)",
+                "🔄  Convert (Format, Compress, GIF)",
+                "✨  Effects (Speed, Color, Denoise, PiP)",
                 questionary.Separator("─────── Image ───────"),
                 "🖼️  Image Tools",
                 questionary.Separator("─────── Other ───────"),
+                "🎬  Create Slideshow",
+                "📝  Metadata Editor",
                 "📦  Batch Convert",
                 "🔍  Inspect File",
                 questionary.Separator(),
@@ -294,6 +324,10 @@ def main_menu():
             console.print()
             console.print("[dim italic]Built with ❤️ by [link=https://hariharen.site]Hariharen[/link][/dim italic]")
             break
+        elif "Metadata" in choice:
+            file_path = select_media_file()
+            if file_path:
+                metadata_editor(file_path)
         elif "Edit" in choice:
             video_edit_menu()
         elif "Audio" in choice:
@@ -306,6 +340,8 @@ def main_menu():
             video_effects_menu()
         elif "Image" in choice:
             image_menu()
+        elif "Slideshow" in choice:
+            create_slideshow()
         elif "Batch" in choice:
             batch_convert()
         elif "Inspect" in choice:
