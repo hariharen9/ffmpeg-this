@@ -38,7 +38,7 @@ logging.basicConfig(
 )
 
 console = Console()
-VERSION = "4.2.0"
+VERSION = "4.3.0"
 
 LOGO = """[bold magenta]
    ██████╗ ███████╗ ██████╗       ████████╗██╗  ██╗██╗███████╗
@@ -68,7 +68,7 @@ def show_landing():
     # Logo and version
     console.print(Align.center(LOGO))
     console.print(Align.center(f"[cyan]v{VERSION}[/cyan]"))
-    console.print(Align.center("[dim italic]Studio in a Shell[/dim italic]"))
+    console.print(Align.center("[dim italic]Your Studio in Shell[/dim italic]"))
     console.print()
 
     # Feature panels
@@ -365,7 +365,7 @@ def main_menu():
         if choice is None or "Exit" in choice:
             console.print()
             console.print("[bold magenta]Thanks for using peg_this![/bold magenta]")
-            console.print("[dim]Your Studio in a Shell.[/dim]")
+            console.print("[dim]Your Studio in a (nut)Shell 😉.[/dim]")
             console.print()
             console.print("[dim italic]Built with ❤️ by [link=https://hariharen.site]Hariharen[/link][/dim italic]")
             break
