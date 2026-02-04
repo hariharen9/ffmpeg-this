@@ -7,6 +7,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import questionary
 from prompt_toolkit.keys import Keys
 from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.columns import Columns
+from rich.align import Align
 
 from peg_this.features.audio import extract_audio, remove_audio, adjust_volume, audio_fade, normalize_audio
 from peg_this.features.batch import batch_convert
@@ -37,26 +41,65 @@ console = Console()
 VERSION = "4.2.0"
 
 LOGO = """[bold magenta]
-╔════════════════════════════════════════════════════════════════════════╗
-║                                                                        ║
-║   ██████╗ ███████╗ ██████╗       ████████╗██╗  ██╗██╗███████╗          ║
-║   ██╔══██╗██╔════╝██╔════╝       ╚══██╔══╝██║  ██║██║██╔════╝          ║
-║   ██████╔╝█████╗  ██║  ███╗█████╗   ██║   ███████║██║███████╗          ║
-║   ██╔═══╝ ██╔══╝  ██║   ██║╚════╝   ██║   ██╔══██║██║╚════██║          ║
-║   ██║     ███████╗╚██████╔╝         ██║   ██║  ██║██║███████║          ║
-║   ╚═╝     ╚══════╝ ╚═════╝          ╚═╝   ╚═╝  ╚═╝╚═╝╚══════╝          ║
-║                                                                        ║
-║                        [cyan]~ peg_this v{version} ~[/cyan]                             ║
-║                  [dim]Your friendly CLI media toolkit[/dim]                       ║
-║                                                                        ║
-╚════════════════════════════════════════════════════════════════════════╝
+   ██████╗ ███████╗ ██████╗       ████████╗██╗  ██╗██╗███████╗
+   ██╔══██╗██╔════╝██╔════╝       ╚══██╔══╝██║  ██║██║██╔════╝
+   ██████╔╝█████╗  ██║  ███╗█████╗   ██║   ███████║██║███████╗
+   ██╔═══╝ ██╔══╝  ██║   ██║╚════╝   ██║   ██╔══██║██║╚════██║
+   ██║     ███████╗╚██████╔╝         ██║   ██║  ██║██║███████║
+   ╚═╝     ╚══════╝ ╚═════╝          ╚═╝   ╚═╝  ╚═╝╚═╝╚══════╝
 [/bold magenta]"""
+
+
+def create_feature_panel(title, items, color="cyan"):
+    """Create a panel with feature list."""
+    content = "\n".join([f"[dim]•[/dim] {item}" for item in items])
+    return Panel(
+        content,
+        title=f"[bold {color}]{title}[/bold {color}]",
+        border_style=f"dim {color}",
+        padding=(0, 1),
+        width=28
+    )
 
 
 def show_landing():
     console.clear()
-    console.print(LOGO.format(version=VERSION), justify="center")
-    console.print("[dim]Studio in a Shell.[/dim]", justify="center")
+
+    # Logo and version
+    console.print(Align.center(LOGO))
+    console.print(Align.center(f"[cyan]v{VERSION}[/cyan]"))
+    console.print(Align.center("[dim italic]Studio in a Shell[/dim italic]"))
+    console.print()
+
+    # Feature panels
+    panels = [
+        create_feature_panel("🎬 Video", [
+            "Trim / Crop / Split",
+            "Join / Merge",
+            "Convert / Compress",
+            "Change Resolution"
+        ], "blue"),
+        create_feature_panel("✨ Effects", [
+            "Speed / Reverse",
+            "Color Correction",
+            "AI Face Blur",
+            "Stabilize / Denoise"
+        ], "magenta"),
+        create_feature_panel("🎵 Audio & AI", [
+            "AI Subtitles",
+            "Extract / Remove",
+            "Volume / Normalize",
+            "Audio Visualizer"
+        ], "green"),
+        create_feature_panel("🛠️ Tools", [
+            "Create Slideshow",
+            "Metadata Editor",
+            "GIF Maker",
+            "Image Tools"
+        ], "yellow"),
+    ]
+
+    console.print(Columns(panels, equal=True, expand=True))
     console.print()
 
 
