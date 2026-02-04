@@ -176,7 +176,7 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 
 ### Prerequisite: Install FFmpeg
 
-> [!NOTE]
+> [NOTE]
 > `peg_this` uses a library called `ffmpeg-python` which acts as a controller for the main FFmpeg program. It does not include FFmpeg itself. Therefore, you must have FFmpeg installed on your system and available in your terminal's PATH.
 
 For **macOS** users, the easiest way to install it is with [Homebrew](https://brew.sh/):

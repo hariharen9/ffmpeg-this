@@ -13,7 +13,7 @@ from peg_this.features.batch import batch_convert
 from peg_this.features.compress import compress_video, change_resolution
 from peg_this.features.convert import convert_file, convert_image, resize_image, rotate_image, flip_image
 from peg_this.features.crop import crop_video, crop_image
-from peg_this.features.effects import add_watermark, merge_audio_video, video_fade, loop_video, color_correction, denoise_video, picture_in_picture, blur_region, auto_blur_faces
+from peg_this.features.effects import add_watermark, merge_audio_video, video_fade, loop_video, color_correction, denoise_video, picture_in_picture, blur_region, auto_blur_faces, audio_visualizer
 from peg_this.features.frames import extract_frames, split_video
 from peg_this.features.inspect import inspect_file
 from peg_this.features.join import join_videos
@@ -310,6 +310,7 @@ def main_menu():
                 "🖼️  Image Tools",
                 questionary.Separator("─────── Other ───────"),
                 "🎬  Create Slideshow",
+                "🎼  Audio Visualizer",
                 "📝  Metadata Editor",
                 "📦  Batch Convert",
                 "🔍  Inspect File",
@@ -330,6 +331,10 @@ def main_menu():
             file_path = select_media_file()
             if file_path:
                 metadata_editor(file_path)
+        elif "Visualizer" in choice:
+            file_path = select_media_file()
+            if file_path:
+                audio_visualizer(file_path)
         elif "Edit" in choice:
             video_edit_menu()
         elif "Audio" in choice:

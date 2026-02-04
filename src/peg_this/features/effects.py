@@ -1539,3 +1539,258 @@ def auto_blur_faces(file_path):
         if os.path.exists(temp_video):
             os.remove(temp_video)
         press_continue()
+
+
+def audio_visualizer(file_path):
+    """Generate a visualization video from audio or video file."""
+    import subprocess
+
+    if not validate_input_file(file_path):
+        press_continue()
+        return
+
+    # Check if file has audio
+    if not has_audio_stream(file_path):
+        console.print("[bold red]Error: No audio stream found in the file.[/bold red]")
+        press_continue()
+        return
+
+    duration = get_video_duration(file_path)
+    if duration <= 0:
+        console.print("[bold red]Error: Could not determine file duration.[/bold red]")
+        press_continue()
+        return
+
+    console.print(f"[dim]Duration: {format_duration(duration)}[/dim]")
+    console.print("[bold cyan]Audio Visualizer - Create stunning visualizations[/bold cyan]")
+
+    # Visualization style
+    style = questionary.select(
+        "Visualization style:",
+        choices=[
+            "Spectrum Bars (Classic equalizer bars)",
+            "Waveform (Oscilloscope wave)",
+            "Showcase CQT (Musical frequency analyzer - Pro look)",
+            "Spectrogram (Frequency waterfall)",
+            "Vector Scope (Circular stereo display)",
+            "Audio Histogram (Frequency histogram)",
+            "← Back"
+        ]
+    ).ask()
+
+    if style == "← Back" or style is None:
+        return
+
+    # Resolution
+    resolution = questionary.select(
+        "Output resolution:",
+        choices=[
+            "1920x1080 (Full HD)",
+            "1280x720 (HD)",
+            "3840x2160 (4K)",
+            "1080x1920 (Vertical/Phone)",
+            "1080x1080 (Square/Instagram)"
+        ]
+    ).ask()
+
+    if resolution is None:
+        return
+
+    res_parts = resolution.split(" ")[0].split("x")
+    width, height = int(res_parts[0]), int(res_parts[1])
+
+    # Color scheme
+    color_scheme = questionary.select(
+        "Color scheme:",
+        choices=[
+            "Neon (Cyan/Magenta)",
+            "Fire (Red/Orange/Yellow)",
+            "Ocean (Blue/Cyan)",
+            "Matrix (Green)",
+            "Rainbow (Full spectrum)",
+            "Monochrome (White)"
+        ]
+    ).ask()
+
+    if color_scheme is None:
+        return
+
+    # Background
+    background = questionary.select(
+        "Background:",
+        choices=[
+            "Black",
+            "Dark Gray",
+            "Gradient (Dark)",
+            "Transparent (if supported)"
+        ]
+    ).ask()
+
+    if background is None:
+        return
+
+    # Build FFmpeg filter based on style
+    filter_complex = None
+    bg_color = "0x000000" if "Black" in background else "0x1a1a1a" if "Gray" in background else "0x000000"
+
+    if "Spectrum Bars" in style:
+        # showspectrum with bars mode
+        if "Neon" in color_scheme:
+            color = "channel"
+        elif "Fire" in color_scheme:
+            color = "fire"
+        elif "Ocean" in color_scheme:
+            color = "cool"
+        elif "Matrix" in color_scheme:
+            color = "green"
+        elif "Rainbow" in color_scheme:
+            color = "rainbow"
+        else:
+            color = "white"
+
+        filter_complex = (
+            f"[0:a]showspectrum=s={width}x{height}:mode=combined:color={color}:"
+            f"scale=cbrt:fscale=log:saturation=3:slide=scroll[v]"
+        )
+
+    elif "Waveform" in style:
+        # showwaves
+        if "Neon" in color_scheme:
+            colors = "0x00ffff|0xff00ff"
+        elif "Fire" in color_scheme:
+            colors = "0xff0000|0xff8800|0xffff00"
+        elif "Ocean" in color_scheme:
+            colors = "0x0066ff|0x00ccff"
+        elif "Matrix" in color_scheme:
+            colors = "0x00ff00"
+        elif "Rainbow" in color_scheme:
+            colors = "0xff0000|0xff8800|0xffff00|0x00ff00|0x0088ff|0x8800ff"
+        else:
+            colors = "0xffffff"
+
+        filter_complex = (
+            f"[0:a]showwaves=s={width}x{height}:mode=cline:rate=30:colors={colors}:"
+            f"scale=cbrt[v]"
+        )
+
+    elif "CQT" in style:
+        # showcqt - constant Q transform, looks professional
+        if "Neon" in color_scheme:
+            bar_g = 2
+            sono_g = 4
+        elif "Fire" in color_scheme:
+            bar_g = 3
+            sono_g = 3
+        elif "Ocean" in color_scheme:
+            bar_g = 1
+            sono_g = 4
+        elif "Matrix" in color_scheme:
+            bar_g = 2
+            sono_g = 3
+        else:
+            bar_g = 2
+            sono_g = 4
+
+        filter_complex = (
+            f"[0:a]showcqt=s={width}x{height}:bar_g={bar_g}:sono_g={sono_g}:"
+            f"bar_v=10:sono_v=bar_v:tc=0.33:attack=0.033:tlength=1[v]"
+        )
+
+    elif "Spectrogram" in style:
+        # showspectrum in separate mode
+        if "Neon" in color_scheme:
+            color = "channel"
+        elif "Fire" in color_scheme:
+            color = "fire"
+        elif "Ocean" in color_scheme:
+            color = "cool"
+        elif "Matrix" in color_scheme:
+            color = "green"
+        elif "Rainbow" in color_scheme:
+            color = "rainbow"
+        else:
+            color = "intensity"
+
+        filter_complex = (
+            f"[0:a]showspectrum=s={width}x{height}:mode=separate:color={color}:"
+            f"scale=log:fscale=log:slide=fullframe:saturation=2[v]"
+        )
+
+    elif "Vector" in style:
+        # avectorscope
+        if "Neon" in color_scheme:
+            mode = "lissajous"
+            draw = "line"
+        elif "Fire" in color_scheme:
+            mode = "polar"
+            draw = "dot"
+        elif "Matrix" in color_scheme:
+            mode = "lissajous_xy"
+            draw = "line"
+        else:
+            mode = "lissajous"
+            draw = "line"
+
+        filter_complex = (
+            f"[0:a]avectorscope=s={width}x{height}:mode={mode}:draw={draw}:"
+            f"scale=cbrt:rate=30[v]"
+        )
+
+    elif "Histogram" in style:
+        # ahistogram
+        if "Neon" in color_scheme:
+            dmode = "separate"
+        else:
+            dmode = "single"
+
+        filter_complex = (
+            f"[0:a]ahistogram=s={width}x{height}:dmode={dmode}:rate=30:"
+            f"scale=log:slide=scroll[v]"
+        )
+
+    if not filter_complex:
+        console.print("[bold red]Error: Unknown visualization style.[/bold red]")
+        press_continue()
+        return
+
+    suffix = "visualizer"
+    output_file = f"{Path(file_path).stem}_{suffix}.mp4"
+    action_result, final_output = check_output_file(output_file, "Output file")
+
+    if action_result == 'cancel':
+        console.print("[yellow]Operation cancelled.[/yellow]")
+        press_continue()
+        return
+
+    # Build FFmpeg command
+    cmd = ['ffmpeg']
+    if action_result == 'overwrite':
+        cmd.append('-y')
+
+    cmd.extend(['-i', file_path])
+    cmd.extend(['-filter_complex', filter_complex])
+    cmd.extend(['-map', '[v]', '-map', '0:a'])
+    cmd.extend(['-c:v', 'libx264', '-preset', 'medium', '-crf', '18'])
+    cmd.extend(['-c:a', 'aac', '-b:a', '192k'])
+    cmd.extend(['-pix_fmt', 'yuv420p'])
+    cmd.extend(['-r', '30'])
+    cmd.append(final_output)
+
+    console.print(f"[bold cyan]Generating {style.split(' (')[0]} visualization...[/bold cyan]")
+    console.print("[dim]This may take a while for long audio files.[/dim]")
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    if result.returncode == 0:
+        console.print(f"[bold green]Successfully created {final_output}[/bold green]")
+    else:
+        console.print("[bold red]Failed to create visualization.[/bold red]")
+        if result.stderr:
+            error_lines = result.stderr.strip().split('\n')
+            error_found = [l for l in error_lines if 'Error' in l or 'error' in l]
+            if error_found:
+                console.print(f"[dim]{error_found[-1]}[/dim]")
+            else:
+                console.print(f"[dim]{error_lines[-3:]}[/dim]")
+
+    press_continue()
