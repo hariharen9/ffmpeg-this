@@ -205,13 +205,6 @@ def video_audio_menu():
         actions[action](file_path)
 
 
-def subtitle_menu():
-    file_path = select_media_file(filter_type="video")
-    if not file_path:
-        return
-    generate_subtitles(file_path)
-
-
 def video_convert_menu():
     action = select_with_back(
         "Select a convert action:",
@@ -261,7 +254,6 @@ def video_effects_menu():
             "Color Correction",
             "Denoise Video",
             "Blur/Pixelate Region (Visual)",
-            "Auto Blur Faces (AI)",
             "Add Watermark",
             "Picture-in-Picture",
             "Stabilize Video",
@@ -290,7 +282,6 @@ def video_effects_menu():
         "Color Correction": color_correction,
         "Denoise Video": denoise_video,
         "Blur/Pixelate Region (Visual)": blur_region,
-        "Auto Blur Faces (AI)": auto_blur_faces,
         "Picture-in-Picture": picture_in_picture,
         "Stabilize Video": stabilize_video,
     }
@@ -378,14 +369,22 @@ def main_menu():
             console.print()
             console.print("[dim italic]Built with ❤️ by [link=https://hariharen.site]Hariharen[/link][/dim italic]")
             break
-        elif "Background Removal" in choice:
-            file_path = select_media_file()
+        elif "AI Subtitles" in choice:
+            file_path = select_media_file(filter_type="video")
             if file_path:
-                remove_background(file_path)
+                generate_subtitles(file_path)
         elif "Brainrot" in choice:
             file_path = select_media_file(filter_type="video")
             if file_path:
                 brainrot_captions(file_path)
+        elif "Background Removal" in choice:
+            file_path = select_media_file()
+            if file_path:
+                remove_background(file_path)
+        elif "Blur Faces" in choice:
+            file_path = select_media_file(filter_type="video")
+            if file_path:
+                auto_blur_faces(file_path)
         elif "Metadata" in choice:
             file_path = select_media_file()
             if file_path:
@@ -398,8 +397,6 @@ def main_menu():
             video_edit_menu()
         elif "Audio" in choice:
             video_audio_menu()
-        elif "Subtitles" in choice:
-            subtitle_menu()
         elif "Convert" in choice:
             video_convert_menu()
         elif "Effects" in choice:

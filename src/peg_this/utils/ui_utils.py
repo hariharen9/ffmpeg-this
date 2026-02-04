@@ -152,6 +152,31 @@ def get_media_files(filter_type=None):
     return files
 
 
+def open_native_file_picker(file_type_label, filetypes):
+    """Open the native OS file picker dialog."""
+    if not tk:
+        console.print("[bold red]Native file picker not available (tkinter not installed).[/bold red]")
+        return None
+
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        # Bring dialog to front on macOS
+        root.attributes('-topmost', True)
+        root.update()
+
+        file_path = filedialog.askopenfilename(
+            title=f"Select a {file_type_label} file",
+            filetypes=filetypes
+        )
+
+        root.destroy()
+        return file_path if file_path else None
+    except Exception as e:
+        console.print(f"[bold red]Error opening file picker: {e}[/bold red]")
+        return None
+
+
 def select_media_file(filter_type=None):
     media_files = get_media_files(filter_type)
 
@@ -172,18 +197,16 @@ def select_media_file(filter_type=None):
 
     if not media_files:
         console.print(f"[bold yellow]No {file_type_label} files found in this directory.[/bold yellow]")
-        if tk and questionary.confirm("Select a file from another location?").ask():
-            root = tk.Tk()
-            root.withdraw()
-            file_path = filedialog.askopenfilename(
-                title=f"Select a {file_type_label} file",
-                filetypes=filetypes
-            )
-            return file_path if file_path else None
+        if tk and questionary.confirm("Open file browser to select from another location?").ask():
+            return open_native_file_picker(file_type_label, filetypes)
         return None
 
-    choices = media_files + [questionary.Separator(), "← Back"]
+    # Add browse option to the choices
+    choices = media_files + [questionary.Separator(), "📂 Browse...", "← Back"]
     show_file_select_help()
     file = select_file_with_search(f"Select a {file_type_label} file:", choices=choices)
+
+    if file == "📂 Browse...":
+        return open_native_file_picker(file_type_label, filetypes)
 
     return os.path.abspath(file) if file and file != "← Back" else None
