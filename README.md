@@ -67,6 +67,8 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | | Normalize Audio | EBU R128, Peak, RMS, or Dynamic normalization |
 | **Effects** | Change Speed | Adjust playback speed (0.25x to 4x) with audio pitch preservation |
 | | Reverse Video | Play video backwards (includes audio) |
+| | Rotate Video | Rotate 90° clockwise, counter-clockwise, or 180° |
+| | Flip Video | Flip horizontally (mirror) or vertically |
 | | Video Fade In/Out | Fade to/from black or white at start/end |
 | | Loop Video | Repeat video N times or to target duration |
 | | Color Correction | Brightness, contrast, saturation with presets |
@@ -82,6 +84,7 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | | Flip | Flip horizontally or vertically |
 | | Crop | Visual cropping with click-and-drag selection |
 | **Other** | Create Slideshow | Create video from images with background music |
+| | Audio Visualizer | Generate stunning audio visualization videos (spectrum, waveform, CQT) |
 | | Metadata Editor | View, edit, clear, or copy video metadata |
 | | Create GIF (Advanced) | Custom FPS, size, quality, loop options |
 | **Batch** | Batch Convert | Convert all media files in directory at once |
@@ -102,6 +105,8 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | **Join** | Multiple videos | Single MP4 | Concat filter + normalize | Yes |
 | **Change Speed** | Any video | Same format | setpts + atempo filters | Yes |
 | **Reverse** | Any video | Same format | Reverse filter | Yes |
+| **Rotate** | Any video | Same format | transpose filter | Yes |
+| **Flip** | Any video | Same format | hflip/vflip filter | Yes |
 | **Video Fade** | Any video | Same format | fade filter | Yes |
 | **Loop Video** | Any video | Same format | stream_loop | No (stream copy) |
 | **Color Correction** | Any video | Same format | eq filter | Yes |
@@ -124,6 +129,7 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | **Adjust Volume** | Video/Audio | Same format | Presets, multiplier, or dB value |
 | **Audio Fade** | Video/Audio | Same format | 6 curve types (linear, log, exp, sine) |
 | **Normalize** | Video/Audio | Same format | EBU R128, Peak, RMS, Dynamic |
+| **Visualizer** | Audio/Video | MP4 video | Spectrum, Waveform, CQT, Vector Scope |
 | **Convert** | Audio file | MP3, FLAC, WAV | Bitrate selection for MP3 |
 
 ### Subtitle Generation

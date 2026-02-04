@@ -17,7 +17,7 @@ from peg_this.features.batch import batch_convert
 from peg_this.features.compress import compress_video, change_resolution
 from peg_this.features.convert import convert_file, convert_image, resize_image, rotate_image, flip_image
 from peg_this.features.crop import crop_video, crop_image
-from peg_this.features.effects import add_watermark, merge_audio_video, video_fade, loop_video, color_correction, denoise_video, picture_in_picture, blur_region, auto_blur_faces, audio_visualizer
+from peg_this.features.effects import add_watermark, merge_audio_video, video_fade, loop_video, color_correction, denoise_video, picture_in_picture, blur_region, auto_blur_faces, audio_visualizer, rotate_video, flip_video
 from peg_this.features.frames import extract_frames, split_video
 from peg_this.features.inspect import inspect_file
 from peg_this.features.join import join_videos
@@ -254,6 +254,8 @@ def video_effects_menu():
         choices=[
             "Change Speed",
             "Reverse Video",
+            "Rotate Video",
+            "Flip Video",
             "Video Fade In/Out",
             "Loop Video",
             "Color Correction",
@@ -279,6 +281,8 @@ def video_effects_menu():
     actions = {
         "Change Speed": change_speed,
         "Reverse Video": reverse_video,
+        "Rotate Video": rotate_video,
+        "Flip Video": flip_video,
         "Add Watermark": add_watermark,
         "Extract Frames": extract_frames,
         "Video Fade In/Out": video_fade,

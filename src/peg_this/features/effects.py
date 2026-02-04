@@ -1794,3 +1794,122 @@ def audio_visualizer(file_path):
                 console.print(f"[dim]{error_lines[-3:]}[/dim]")
 
     press_continue()
+
+
+def rotate_video(file_path):
+    """Rotate video by 90, 180, or 270 degrees."""
+    if not validate_input_file(file_path):
+        press_continue()
+        return
+
+    rotation = questionary.select(
+        "Select rotation:",
+        choices=[
+            "90° Clockwise",
+            "90° Counter-Clockwise",
+            "180°",
+            "← Back"
+        ]
+    ).ask()
+
+    if rotation == "← Back" or rotation is None:
+        return
+
+    # FFmpeg transpose values:
+    # 0 = 90° counter-clockwise and vertical flip
+    # 1 = 90° clockwise
+    # 2 = 90° counter-clockwise
+    # 3 = 90° clockwise and vertical flip
+    if rotation == "90° Clockwise":
+        transpose_value = "1"
+        suffix = "rotated_90cw"
+    elif rotation == "90° Counter-Clockwise":
+        transpose_value = "2"
+        suffix = "rotated_90ccw"
+    else:  # 180°
+        transpose_value = None
+        suffix = "rotated_180"
+
+    output_file = f"{Path(file_path).stem}_{suffix}{Path(file_path).suffix}"
+    action_result, final_output = check_output_file(output_file, "Video file")
+
+    if action_result == 'cancel':
+        return
+
+    if not check_disk_space(file_path):
+        return
+
+    try:
+        stream = ffmpeg.input(file_path)
+
+        if transpose_value:
+            # 90° rotation
+            video = stream.video.filter('transpose', transpose_value)
+        else:
+            # 180° rotation = two 90° rotations or hflip+vflip
+            video = stream.video.filter('hflip').filter('vflip')
+
+        if has_audio_stream(file_path):
+            output = ffmpeg.output(video, stream.audio, final_output, **{'c:a': 'copy'})
+        else:
+            output = ffmpeg.output(video, final_output)
+
+        console.print(f"[bold cyan]Rotating video {rotation}...[/bold cyan]")
+        run_command(output, action_result == 'overwrite')
+        console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
+    except ffmpeg.Error as e:
+        console.print(f"[bold red]FFmpeg error: {e.stderr.decode() if e.stderr else str(e)}[/bold red]")
+
+    press_continue()
+
+
+def flip_video(file_path):
+    """Flip video horizontally or vertically."""
+    if not validate_input_file(file_path):
+        press_continue()
+        return
+
+    flip_type = questionary.select(
+        "Select flip direction:",
+        choices=[
+            "Horizontal (Mirror)",
+            "Vertical",
+            "← Back"
+        ]
+    ).ask()
+
+    if flip_type == "← Back" or flip_type is None:
+        return
+
+    if flip_type == "Horizontal (Mirror)":
+        filter_name = "hflip"
+        suffix = "flipped_h"
+    else:
+        filter_name = "vflip"
+        suffix = "flipped_v"
+
+    output_file = f"{Path(file_path).stem}_{suffix}{Path(file_path).suffix}"
+    action_result, final_output = check_output_file(output_file, "Video file")
+
+    if action_result == 'cancel':
+        return
+
+    if not check_disk_space(file_path):
+        return
+
+    try:
+        stream = ffmpeg.input(file_path)
+        video = stream.video.filter(filter_name)
+
+        if has_audio_stream(file_path):
+            output = ffmpeg.output(video, stream.audio, final_output, **{'c:a': 'copy'})
+        else:
+            output = ffmpeg.output(video, final_output)
+
+        console.print(f"[bold cyan]Flipping video {flip_type.lower()}...[/bold cyan]")
+        run_command(output, action_result == 'overwrite')
+        console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
+    except ffmpeg.Error as e:
+        console.print(f"[bold red]FFmpeg error: {e.stderr.decode() if e.stderr else str(e)}[/bold red]")
+
+    press_continue()
