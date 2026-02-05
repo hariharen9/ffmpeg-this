@@ -248,6 +248,23 @@ If you want to run the tool directly from the source code:
     python -m src.peg_this.peg_this
     ```
 
+## 🖥️ Graphical User Interface (New!)
+
+**Your Studio in a Shell... now has a Window!**
+
+We've brought the full power of `peg_this` to the desktop. The entire massive feature set—from AI subtitles and background removal to format conversions and brainrot captions—is now available in a fully hardware-accelerated Graphical User Interface.
+
+Enjoy the same robust FFmpeg backend with a modern visual workflow. Whether you're a terminal warrior or a mouse-clicker, we've got you covered. Same powerful engine, two ways to drive.
+
+### Launching the GUI
+Run the tool with the `--gui` flag:
+
+```bash
+peg_this --gui
+```
+
+> **Note:** The GUI is currently in **Beta**. It requires `dearpygui` and `opencv-python` (installed automatically).
+
 ## Subtitle Generation
 
 The subtitle feature uses [faster-whisper](https://github.com/SYSTRAN/faster-whisper), a fast and accurate speech-to-text engine powered by OpenAI's Whisper model.

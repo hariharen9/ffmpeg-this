@@ -36,7 +36,8 @@ dependencies = [
     "mediapipe>=0.10.0",
     "rembg>=2.0.50",
     "onnxruntime>=1.16.0",
-    "demucs>=4.0.0"
+    "demucs>=4.0.0",
+    "dearpygui>=2.0.0"
 ]
 
 [project.optional-dependencies]

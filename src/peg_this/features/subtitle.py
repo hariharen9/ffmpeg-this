@@ -549,7 +549,6 @@ def brainrot_captions(file_path):
         console.print(f"[green]Found {len(all_words)} words[/green]")
 
         # Generate ASS subtitle file
-        import tempfile
         ass_fd, ass_path = tempfile.mkstemp(suffix=".ass")
         os.close(ass_fd)
 

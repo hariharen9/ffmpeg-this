@@ -433,7 +433,27 @@ def main_menu():
             settings_menu()
 
 
+import argparse
+
 def main():
+    parser = argparse.ArgumentParser(description="FFMPEG-this: Your Studio in a Shell")
+    parser.add_argument("--gui", action="store_true", help="Launch the experimental Graphical User Interface")
+    args, unknown = parser.parse_known_args()
+
+    if args.gui:
+        try:
+            from peg_this.ui.app import run_gui
+            run_gui()
+        except ImportError as e:
+            console.print(f"[bold red]Failed to launch GUI: {e}[/bold red]")
+            console.print("[yellow]Ensure you have 'dearpygui' installed: pip install dearpygui[/yellow]")
+            sys.exit(1)
+        except Exception as e:
+            logging.exception("GUI crashed.")
+            console.print(f"[bold red]GUI Error: {e}[/bold red]")
+            sys.exit(1)
+        return
+
     try:
         main_menu()
     except (KeyboardInterrupt, EOFError):
