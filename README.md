@@ -61,12 +61,14 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | | Split Video | Divide video into equal parts or by duration |
 | | Join/Concatenate | Merge multiple videos with automatic resolution matching |
 | **Audio** | Extract Audio | Rip audio track to MP3, FLAC, or WAV |
+| | Separate Music Stems | AI separation of Vocals, Drums, Bass, Other (Demucs) |
 | | Remove Audio | Create silent version of video (keeps video intact) |
 | | Merge Audio | Replace or mix audio track with video |
 | | Adjust Volume | Increase/decrease volume (presets, dB, multiplier) |
 | | Audio Fade In/Out | Fade audio at start/end (6 curve types) |
 | | Normalize Audio | EBU R128, Peak, RMS, or Dynamic normalization |
-| **Effects** | Change Speed | Adjust playback speed (0.25x to 4x) with audio pitch preservation |
+| **Effects** | Smooth Slow Motion | Optical Flow (AI) for buttery smooth slow motion |
+| | Change Speed | Adjust playback speed (0.25x to 4x) with audio pitch preservation |
 | | Reverse Video | Play video backwards (includes audio) |
 | | Rotate Video | Rotate 90° clockwise, counter-clockwise, or 180° |
 | | Flip Video | Flip horizontally (mirror) or vertically |
@@ -80,6 +82,7 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | | Video Stabilization | Reduce camera shake (Light/Medium/Heavy) |
 | | Extract Frames | Export single frame, every N seconds, or all frames as images |
 | **AI** | Background Removal | AI-powered background removal for images and videos (rembg) |
+| | Music Separation | Isolate vocals and instruments using Demucs (2/4/6 stems) |
 | | Auto Blur Faces | AI face detection and automatic blurring (OpenCV/MediaPipe) |
 | | Brainrot Captions | TikTok-style word-by-word animated captions with Whisper |
 | **Image** | Resize | Scale images with aspect ratio preservation |

@@ -1,7 +1,7 @@
-
 import subprocess
 import logging
 import sys
+from collections import deque
 
 import ffmpeg
 from rich.console import Console
@@ -94,8 +94,12 @@ def run_command(stream_spec, description="Processing...", show_progress=False):
                 universal_newlines=True,
                 encoding='utf-8'
             )
+            
+            # Capture the last few lines of stderr
+            stderr_buffer = deque(maxlen=15)
 
             for line in process.stderr:
+                stderr_buffer.append(line)
                 logging.debug(f"ffmpeg stderr: {line.strip()}")
                 if "time=" in line and duration > 0:
                     try:
@@ -113,7 +117,9 @@ def run_command(stream_spec, description="Processing...", show_progress=False):
             
             if process.returncode != 0:
                 log_file = logging.getLogger().handlers[0].baseFilename
-                console.print(f"[bold red]An error occurred during processing. Check {log_file} for details.[/bold red]")
+                console.print("[bold red]An error occurred:[/bold red]")
+                console.print("".join(stderr_buffer))
+                console.print(f"Full log: {log_file}")
                 return False
         
         logging.info("Command successful (with progress bar).")

@@ -21,10 +21,11 @@ from peg_this.features.effects import add_watermark, merge_audio_video, video_fa
 from peg_this.features.frames import extract_frames, split_video
 from peg_this.features.inspect import inspect_file
 from peg_this.features.join import join_videos
-from peg_this.features.speed import change_speed, reverse_video
+from peg_this.features.speed import change_speed, reverse_video, smooth_slow_motion
 from peg_this.features.subtitle import generate_subtitles, brainrot_captions
 from peg_this.features.trim import trim_video
 from peg_this.features.advanced import create_slideshow, metadata_editor, stabilize_video, create_gif_advanced
+from peg_this.features.music_separation import separate_stems
 from peg_this.utils.ffmpeg_utils import check_ffmpeg_ffprobe
 from peg_this.utils.ui_utils import select_media_file
 
@@ -87,6 +88,7 @@ def show_landing():
         ], "magenta"),
         create_feature_panel("🎵 Audio & AI", [
             "AI Subtitles",
+            "Separate Music Stems",
             "Extract / Remove",
             "Volume / Normalize",
             "Audio Visualizer"
@@ -174,6 +176,7 @@ def video_audio_menu():
     action = select_with_back(
         "Select an audio action:",
         choices=[
+            "Separate Music Stems (AI)",
             "Extract Audio",
             "Remove Audio",
             "Merge Audio with Video",
@@ -188,11 +191,15 @@ def video_audio_menu():
     if action == "← Back" or action is None:
         return
 
-    file_path = select_media_file(filter_type="video")
+    if action == "Separate Music Stems (AI)":
+        file_path = select_media_file()
+    else:
+        file_path = select_media_file(filter_type="video")
     if not file_path:
         return
 
     actions = {
+        "Separate Music Stems (AI)": separate_stems,
         "Extract Audio": extract_audio,
         "Remove Audio": remove_audio,
         "Merge Audio with Video": merge_audio_video,
@@ -246,6 +253,7 @@ def video_effects_menu():
         "Select an effect:",
         choices=[
             "Change Speed",
+            "Smooth Slow Motion (Optical Flow)",
             "Reverse Video",
             "Rotate Video",
             "Flip Video",
@@ -266,12 +274,17 @@ def video_effects_menu():
     if action == "← Back" or action is None:
         return
 
-    file_path = select_media_file(filter_type="video")
+    if action == "Separate Music Stems (AI)":
+        file_path = select_media_file()
+    else:
+        file_path = select_media_file(filter_type="video")
+
     if not file_path:
         return
 
     actions = {
         "Change Speed": change_speed,
+        "Smooth Slow Motion (Optical Flow)": smooth_slow_motion,
         "Reverse Video": reverse_video,
         "Rotate Video": rotate_video,
         "Flip Video": flip_video,
@@ -345,6 +358,7 @@ def main_menu():
                 "✨  Effects (Speed, Color, Denoise, PiP)",
                 questionary.Separator("──────── AI ─────────"),
                 "💬  AI Subtitles (Whisper)",
+                "🎹  Separate Music Stems (Demucs)",
                 "🔥  Brainrot Captions",
                 "🧠  Background Removal",
                 "👤  Auto Blur Faces",
@@ -373,6 +387,10 @@ def main_menu():
             file_path = select_media_file(filter_type="video")
             if file_path:
                 generate_subtitles(file_path)
+        elif "Separate Music Stems" in choice:
+            file_path = select_media_file()
+            if file_path:
+                separate_stems(file_path)
         elif "Brainrot" in choice:
             file_path = select_media_file(filter_type="video")
             if file_path:

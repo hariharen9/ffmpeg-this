@@ -119,6 +119,152 @@ def change_speed(file_path):
     press_continue()
 
 
+def smooth_slow_motion(file_path):
+    if not validate_input_file(file_path):
+        press_continue()
+        return
+
+    duration = get_video_duration(file_path)
+    if duration > 0:
+        console.print(f"[dim]Current duration: {format_duration(duration)}[/dim]")
+
+    speed = questionary.select(
+        "Select speed (slower = smoother):",
+        choices=[
+            "0.5x (Slow)",
+            "0.25x (Very Slow)",
+            "0.125x (Super Slow)",
+            "Custom",
+            "← Back"
+        ]
+    ).ask()
+
+    if speed == "← Back" or speed is None:
+        return
+
+    if speed == "Custom":
+        custom_speed = questionary.text(
+            "Enter speed multiplier (e.g., 0.1 for 10x slower):",
+            default="0.5"
+        ).ask()
+        if not custom_speed:
+            return
+        try:
+            speed_factor = float(custom_speed)
+            if speed_factor <= 0 or speed_factor >= 1.0:
+                console.print("[bold red]For slow motion, speed must be between 0 and 1.[/bold red]")
+                press_continue()
+                return
+        except ValueError:
+            console.print("[bold red]Invalid speed value.[/bold red]")
+            press_continue()
+            return
+    else:
+        speed_factor = float(speed.split('x')[0])
+
+    target_fps_choice = questionary.select(
+        "Target FPS (higher = smoother playback):",
+        choices=[
+            "60 fps (Recommended)",
+            "30 fps",
+            "Keep Original",
+            "Custom"
+        ]
+    ).ask()
+
+    if target_fps_choice is None:
+        return
+
+    target_fps_val = None
+    if "60" in target_fps_choice:
+        target_fps_val = 60
+    elif "30" in target_fps_choice:
+        target_fps_val = 30
+    elif "Custom" in target_fps_choice:
+        custom_fps = questionary.text("Enter target FPS:", default="60").ask()
+        if custom_fps:
+            try:
+                target_fps_val = int(custom_fps)
+            except ValueError:
+                console.print("[bold red]Invalid FPS value. Defaulting to 60.[/bold red]")
+                target_fps_val = 60
+
+    # If "Keep Original" or fallback needed, we need to probe
+    if target_fps_choice == "Keep Original":
+        try:
+            probe = ffmpeg.probe(file_path, select_streams='v')
+            r_frame_rate = probe['streams'][0]['r_frame_rate']
+            num, den = map(int, r_frame_rate.split('/'))
+            target_fps_val = num / den if den != 0 else 30
+        except Exception:
+            target_fps_val = 30  # Safe fallback
+
+    new_duration = duration / speed_factor
+    console.print(f"[dim]New duration will be: {format_duration(new_duration)}[/dim]")
+
+    console.print("\n[bold yellow]⚠️  WARNING: Optical Flow is computationally expensive![/bold yellow]")
+    console.print(f"[dim]This uses the 'minterpolate' filter with motion compensation.[/dim]")
+    console.print(f"[dim]Render time can be 10-50x the video duration depending on CPU.[/dim]")
+    if not questionary.confirm("Continue?", default=True).ask():
+        return
+
+    suffix = f"_opticalflow_{speed_factor}x"
+    output_file = f"{Path(file_path).stem}{suffix}{Path(file_path).suffix}"
+    action_result, final_output = check_output_file(output_file, "Video file")
+
+    if action_result == 'cancel':
+        console.print("[yellow]Operation cancelled.[/yellow]")
+        press_continue()
+        return
+
+    # Video speed: setpts filter (lower = faster, higher = slower)
+    video_tempo = 1 / speed_factor
+
+    input_stream = ffmpeg.input(file_path)
+
+    # Construct minterpolate options
+    # mi_mode=mci: Motion Compensated Interpolation
+    # mc_mode=aobmc: Adaptive Overlapped Block Motion Compensation (higher quality)
+    # me_mode=bidir: Bidirectional motion estimation
+    # vsbmc=1: Variable-size block motion compensation
+    minterpolate_kwargs = {
+        'mi_mode': 'mci',
+        'mc_mode': 'aobmc',
+        'me_mode': 'bidir',
+        'vsbmc': 1
+    }
+    if target_fps_val:
+        minterpolate_kwargs['fps'] = target_fps_val
+
+    video = input_stream.video.filter('setpts', f'{video_tempo}*PTS').filter('minterpolate', **minterpolate_kwargs)
+
+    if has_audio_stream(file_path):
+        audio = input_stream.audio
+        # Audio speed logic (reuse)
+        if speed_factor < 0.5:
+            remaining = speed_factor
+            while remaining < 0.5:
+                audio = audio.filter('atempo', 0.5)
+                remaining /= 0.5
+            audio = audio.filter('atempo', remaining)
+        else:
+            audio = audio.filter('atempo', speed_factor)
+
+        stream = ffmpeg.output(video, audio, final_output, **{'c:v': 'libx264', 'crf': 23})
+    else:
+        stream = ffmpeg.output(video, final_output, **{'c:v': 'libx264', 'crf': 23})
+
+    if action_result == 'overwrite':
+        stream = stream.overwrite_output()
+
+    if run_command(stream, f"Generating smooth slow motion ({speed_factor}x)...", show_progress=True):
+        console.print(f"[bold green]Saved to: {final_output}[/bold green]")
+    else:
+        console.print("[bold red]Smooth slow motion failed.[/bold red]")
+
+    press_continue()
+
+
 def reverse_video(file_path):
     if not validate_input_file(file_path):
         press_continue()
