@@ -30,7 +30,10 @@ def crop_video(file_path):
         press_continue()
         return
 
-    preview_frame = f"preview_{Path(file_path).stem}.jpg"
+    import tempfile
+    preview_fd, preview_frame = tempfile.mkstemp(suffix=".jpg")
+    os.close(preview_fd)
+
     try:
         probe = ffmpeg.probe(file_path)
         duration = float(probe['format'].get('duration', 0))

@@ -871,7 +871,10 @@ def blur_region(file_path):
             return
 
     # Extract preview frame
-    preview_frame = f"preview_blur_{Path(file_path).stem}.jpg"
+    import tempfile
+    preview_fd, preview_frame = tempfile.mkstemp(suffix=".jpg")
+    os.close(preview_fd)
+
     try:
         # Get frame from the middle of the effect time range
         preview_time = start_time + (end_time - start_time) / 2
@@ -1318,7 +1321,13 @@ def auto_blur_faces(file_path):
         return
 
     # Temporary file for video without audio
-    temp_video = f"temp_video_{Path(file_path).stem}.mp4"
+    import tempfile
+    temp_dir_path = tempfile.gettempdir()
+    temp_video = os.path.join(temp_dir_path, f"temp_video_{Path(file_path).stem}.mp4")
+
+    cap = None
+    out = None
+    detector = None
 
     try:
         # Open video
@@ -1344,7 +1353,6 @@ def auto_blur_faces(file_path):
         from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeRemainingColumn
 
         # Initialize face detector based on method
-        detector = None
         face_cascade = None
 
         if use_mediapipe:
@@ -1352,7 +1360,7 @@ def auto_blur_faces(file_path):
             import urllib.request
             import urllib.error
             import ssl
-            model_path = os.path.join(os.path.dirname(__file__), "blaze_face_short_range.tflite")
+            model_path = os.path.join(temp_dir_path, "blaze_face_short_range.tflite")
 
             if not os.path.exists(model_path):
                 console.print("[dim]Downloading face detection model from Google...[/dim]")
@@ -1480,20 +1488,10 @@ def auto_blur_faces(file_path):
                 out.write(frame)
                 progress.update(task, advance=1)
 
-        # Clean up detector
-        if detector:
-            detector.close()
-
-        cap.release()
-        out.release()
-
         console.print(f"[dim]Detected {faces_detected} face instances across {frames_with_faces} frames.[/dim]")
 
         if faces_detected == 0:
             console.print("[yellow]No faces detected in the video.[/yellow]")
-            if os.path.exists(temp_video):
-                os.remove(temp_video)
-            press_continue()
             return
 
         # Merge with original audio using FFmpeg
@@ -1547,9 +1545,19 @@ def auto_blur_faces(file_path):
         import traceback
         console.print(f"[dim]{traceback.format_exc()}[/dim]")
     finally:
+        # Clean up detector
+        if detector:
+            detector.close()
+        if cap:
+            cap.release()
+        if out:
+            out.release()
         # Clean up temp file
         if os.path.exists(temp_video):
-            os.remove(temp_video)
+            try:
+                os.remove(temp_video)
+            except Exception:
+                pass
         press_continue()
 
 
@@ -2197,7 +2205,9 @@ def remove_background_video(file_path):
     console.print("[dim]This is a slow process - each frame is processed by AI.[/dim]")
 
     # Create temp directory for frames
+    import tempfile
     temp_dir = tempfile.mkdtemp()
+    cap = None
 
     try:
         # Load background image if specified
@@ -2261,11 +2271,8 @@ def remove_background_video(file_path):
                 frame_count += 1
                 progress.update(task, advance=1)
 
-        cap.release()
-
         if frame_count == 0:
             console.print("[bold red]No frames were processed.[/bold red]")
-            press_continue()
             return
 
         console.print(f"[green]Processed {frame_count} frames. Reassembling video...[/green]")
@@ -2338,7 +2345,8 @@ def remove_background_video(file_path):
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")
     finally:
+        if cap:
+            cap.release()
         # Cleanup temp directory
         shutil.rmtree(temp_dir, ignore_errors=True)
-
-    press_continue()
+        press_continue()

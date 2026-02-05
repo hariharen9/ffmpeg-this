@@ -116,6 +116,11 @@ def create_slideshow():
             console.print("[yellow]Audio file not found, continuing without music.[/yellow]")
             music_path = None
 
+    from peg_this.utils.validation import check_write_permission
+    if not check_write_permission(os.getcwd()):
+        press_continue()
+        return
+
     output_file = "slideshow.mp4"
     action_result, final_output = check_output_file(output_file, "Video file")
 
@@ -126,16 +131,21 @@ def create_slideshow():
 
     # Build FFmpeg command
     # For simplicity, use concat demuxer approach
-    concat_file = "slideshow_concat.txt"
+    import tempfile
+    concat_fd, concat_file = tempfile.mkstemp(suffix=".txt", text=True)
 
     try:
         # Create concat file
-        with open(concat_file, 'w') as f:
+        with os.fdopen(concat_fd, 'w') as f:
             for img in images:
-                f.write(f"file '{os.path.abspath(img)}'\n")
+                # Escape single quotes for FFmpeg concat demuxer
+                # FFmpeg concat demuxer escaping: ' becomes '\''
+                escaped_path = os.path.abspath(img).replace("'", "'\\''")
+                f.write(f"file '{escaped_path}'\n")
                 f.write(f"duration {duration_val}\n")
             # Add last image again for proper duration
-            f.write(f"file '{os.path.abspath(images[-1])}'\n")
+            last_escaped = os.path.abspath(images[-1]).replace("'", "'\\''")
+            f.write(f"file '{last_escaped}'\n")
 
         # Build filter for resolution
         if "original" not in resolution.lower():
@@ -423,7 +433,9 @@ def stabilize_video(file_path):
     if action_result == 'cancel':
         return
 
-    transforms_file = f"transforms_{Path(file_path).stem}.trf"
+    import tempfile
+    transforms_fd, transforms_file = tempfile.mkstemp(suffix=".trf")
+    os.close(transforms_fd)
 
     try:
         # Pass 1: Analyze
@@ -580,7 +592,9 @@ def create_gif_advanced(file_path):
     if action_result == 'cancel':
         return
 
-    palette_file = f"palette_{Path(file_path).stem}.png"
+    import tempfile
+    palette_fd, palette_file = tempfile.mkstemp(suffix=".png")
+    os.close(palette_fd)
 
     try:
         console.print("[bold cyan]Generating optimized GIF...[/bold cyan]")

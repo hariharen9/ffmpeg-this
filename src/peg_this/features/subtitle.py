@@ -549,10 +549,20 @@ def brainrot_captions(file_path):
         console.print(f"[green]Found {len(all_words)} words[/green]")
 
         # Generate ASS subtitle file
-        ass_path = os.path.join(temp_dir, "captions.ass")
+        import tempfile
+        ass_fd, ass_path = tempfile.mkstemp(suffix=".ass")
+        os.close(ass_fd)
 
         # Calculate font size based on video height
         base_font_size = int(video_height / 12)  # Roughly 90px for 1080p
+
+        # Font fallback logic
+        # On Linux, Impact is rarely installed. Arial is more common.
+        # But for ASS, we can only specify one font per style.
+        # We'll use Impact but provide a way to change it if needed, or just hope libass falls back.
+        # A better way is to use a more generic font name that fontconfig maps to something bold.
+        primary_font = "Impact"
+        fallback_font = "Arial Black" if os.name != 'nt' else "Impact"
 
         # Position calculation
         if "Center" in position:
@@ -633,8 +643,8 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Impact,{base_font_size},{config['primary_color']},&H000000FF,{config['outline_color']},&H00000000,{config['bold']},0,0,0,100,100,0,0,1,{config['outline_width']},{config['shadow']},2,10,10,{margin_v},1
-Style: Highlight,Impact,{base_font_size},{config.get('highlight_color', '&H0000FFFF')},&H000000FF,{config['outline_color']},&H00000000,{config['bold']},0,0,0,100,100,0,0,1,{config['outline_width']},{config['shadow']},2,10,10,{margin_v},1
+Style: Default,{fallback_font},{base_font_size},{config['primary_color']},&H000000FF,{config['outline_color']},&H00000000,{config['bold']},0,0,0,100,100,0,0,1,{config['outline_width']},{config['shadow']},2,10,10,{margin_v},1
+Style: Highlight,{fallback_font},{base_font_size},{config.get('highlight_color', '&H0000FFFF')},&H000000FF,{config['outline_color']},&H00000000,{config['bold']},0,0,0,100,100,0,0,1,{config['outline_width']},{config['shadow']},2,10,10,{margin_v},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
