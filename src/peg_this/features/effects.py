@@ -5,7 +5,7 @@ import ffmpeg
 import questionary
 from rich.console import Console
 
-from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream
+from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream, get_global_encoding_args
 from peg_this.utils.validation import (
     validate_input_file, check_output_file, check_disk_space, press_continue,
     get_video_duration, format_duration, validate_time_input, check_has_video_stream
@@ -1164,7 +1164,12 @@ def blur_region(file_path):
         if has_audio_stream(file_path):
             cmd.extend(['-map', '0:a', '-c:a', 'copy'])
 
-        cmd.extend(['-c:v', 'libx264', '-preset', 'medium', '-crf', '18'])
+        # Use global encoding args
+        from peg_this.settings import Settings
+        settings = Settings()
+        encoding_args = settings.get_encoder_list_args(quality="medium", crf=18)
+        cmd.extend(encoding_args)
+
         cmd.append(final_output)
 
         console.print(f"[bold cyan]Applying {'blur' if is_blur else 'pixelate'} to {valid_region_count} region(s)...[/bold cyan]")
@@ -1494,6 +1499,10 @@ def auto_blur_faces(file_path):
         # Merge with original audio using FFmpeg
         console.print("[bold cyan]Merging audio...[/bold cyan]")
 
+        from peg_this.settings import Settings
+        settings = Settings()
+        encoding_args = settings.get_encoder_list_args(quality="medium", crf=18)
+
         if has_audio_stream(file_path):
             # Combine processed video with original audio
             import subprocess
@@ -1501,12 +1510,14 @@ def auto_blur_faces(file_path):
                 'ffmpeg', '-y',
                 '-i', temp_video,
                 '-i', file_path,
-                '-c:v', 'libx264', '-preset', 'medium', '-crf', '18',
+            ]
+            merge_cmd.extend(encoding_args)
+            merge_cmd.extend([
                 '-c:a', 'aac', '-b:a', '192k',
                 '-map', '0:v:0', '-map', '1:a:0',
                 '-shortest',
                 final_output
-            ]
+            ])
             result = subprocess.run(merge_cmd, capture_output=True, text=True)
 
             if result.returncode != 0:
@@ -1520,9 +1531,10 @@ def auto_blur_faces(file_path):
             encode_cmd = [
                 'ffmpeg', '-y',
                 '-i', temp_video,
-                '-c:v', 'libx264', '-preset', 'medium', '-crf', '18',
-                final_output
             ]
+            encode_cmd.extend(encoding_args)
+            encode_cmd.append(final_output)
+
             result = subprocess.run(encode_cmd, capture_output=True, text=True)
 
             if result.returncode == 0:
@@ -1770,7 +1782,13 @@ def audio_visualizer(file_path):
     cmd.extend(['-i', file_path])
     cmd.extend(['-filter_complex', filter_complex])
     cmd.extend(['-map', '[v]', '-map', '0:a'])
-    cmd.extend(['-c:v', 'libx264', '-preset', 'medium', '-crf', '18'])
+
+    # Use global encoding args
+    from peg_this.settings import Settings
+    settings = Settings()
+    encoding_args = settings.get_encoder_list_args(quality="medium", crf=18)
+    cmd.extend(encoding_args)
+
     cmd.extend(['-c:a', 'aac', '-b:a', '192k'])
     cmd.extend(['-pix_fmt', 'yuv420p'])
     cmd.extend(['-r', '30'])
@@ -2255,8 +2273,12 @@ def remove_background_video(file_path):
         # Reassemble video with FFmpeg
         frame_pattern = os.path.join(temp_dir, "frame_%06d.png")
 
+        from peg_this.settings import Settings
+        settings = Settings()
+
         if output_transparent:
-            # WebM with alpha channel
+            # WebM with alpha channel (requires vp9 usually, not hw accel friendly always)
+            # Keeping software VP9 for transparency for safety
             cmd = [
                 'ffmpeg', '-y' if action_result == 'overwrite' else '-n',
                 '-framerate', str(fps),
@@ -2268,17 +2290,18 @@ def remove_background_video(file_path):
                 final_output
             ]
         else:
-            # MP4 (no alpha)
+            # MP4 (no alpha) - Use HW accel
+            encoding_args = settings.get_encoder_list_args(quality="medium", crf=18)
             cmd = [
                 'ffmpeg', '-y' if action_result == 'overwrite' else '-n',
                 '-framerate', str(fps),
                 '-i', frame_pattern,
-                '-c:v', 'libx264',
-                '-pix_fmt', 'yuv420p',
-                '-crf', '18',
-                '-preset', 'medium',
-                final_output
             ]
+            cmd.extend(encoding_args)
+            cmd.extend([
+                '-pix_fmt', 'yuv420p',
+                final_output
+            ])
 
         # Add audio if present
         if has_audio_stream(file_path):
@@ -2294,7 +2317,9 @@ def remove_background_video(file_path):
             if output_transparent:
                 cmd_with_audio.extend(['-c:v', 'libvpx-vp9', '-pix_fmt', 'yuva420p', '-crf', '30', '-b:v', '0'])
             else:
-                cmd_with_audio.extend(['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'medium'])
+                cmd_with_audio.extend(encoding_args)
+                cmd_with_audio.extend(['-pix_fmt', 'yuv420p'])
+
             cmd_with_audio.extend(['-c:a', 'copy', '-shortest', final_output])
             cmd = cmd_with_audio
 

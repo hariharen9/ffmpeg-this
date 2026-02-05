@@ -6,7 +6,7 @@ import ffmpeg
 import questionary
 from rich.console import Console
 
-from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream
+from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream, get_global_encoding_args
 from peg_this.utils.ui_utils import get_media_files
 from peg_this.utils.validation import check_disk_space, press_continue
 
@@ -91,9 +91,11 @@ def batch_convert():
                     if quality_preset == "Same as source":
                         kwargs['c'] = 'copy'
                     else:
-                        crf = quality_preset.split(" ")[-1][1:-1]
-                        kwargs['c:v'] = 'libx264'
-                        kwargs['crf'] = crf
+                        crf = int(quality_preset.split(" ")[-1][1:-1])
+                        # Get standardized encoding args
+                        encoding_args = get_global_encoding_args(quality="medium", crf=crf)
+                        kwargs.update(encoding_args)
+
                         kwargs['pix_fmt'] = 'yuv420p'
                         if has_audio:
                             kwargs['c:a'] = 'aac'

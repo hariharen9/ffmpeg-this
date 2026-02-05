@@ -26,6 +26,7 @@ from peg_this.features.subtitle import generate_subtitles, brainrot_captions
 from peg_this.features.trim import trim_video
 from peg_this.features.advanced import create_slideshow, metadata_editor, stabilize_video, create_gif_advanced
 from peg_this.features.music_separation import separate_stems
+from peg_this.settings import settings_menu
 from peg_this.utils.ffmpeg_utils import check_ffmpeg_ffprobe
 from peg_this.utils.ui_utils import select_media_file
 
@@ -370,6 +371,7 @@ def main_menu():
                 "📝  Metadata Editor",
                 "📦  Batch Convert",
                 "🔍  Inspect File",
+                "⚙️  Settings",
                 questionary.Separator(),
                 "👋  Exit"
             ],
@@ -427,6 +429,8 @@ def main_menu():
             batch_convert()
         elif "Inspect" in choice:
             inspect_menu()
+        elif "Settings" in choice:
+            settings_menu()
 
 
 def main():

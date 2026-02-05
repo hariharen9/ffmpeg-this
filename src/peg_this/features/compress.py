@@ -5,7 +5,7 @@ import ffmpeg
 import questionary
 from rich.console import Console
 
-from peg_this.utils.ffmpeg_utils import run_command
+from peg_this.utils.ffmpeg_utils import run_command, get_global_encoding_args
 from peg_this.utils.validation import (
     validate_input_file, check_output_file, get_video_duration,
     format_duration, check_disk_space, press_continue
@@ -88,7 +88,65 @@ def compress_video(file_path):
         video_bitrate_k = video_bitrate // 1000
         console.print(f"[dim]Calculated video bitrate: {video_bitrate_k} kbps[/dim]")
 
+        # Get base encoding args (codec, preset) from settings
+        # Note: 2-pass target bitrate ignores CRF, but we need the codec
+        base_args = get_global_encoding_args(quality="medium")
+        codec = base_args.get('c:v', 'libx264')
+        preset = base_args.get('preset', 'slow') # Force slow for compression if possible, or use setting
+
         stream = ffmpeg.input(file_path)
+
+        # Pass 1 args
+        pass1_args = {
+            'c:v': codec,
+            'b:v': f'{video_bitrate_k}k',
+            'pass': 1,
+            'f': 'null'
+        }
+        if 'preset' in base_args: pass1_args['preset'] = base_args['preset']
+
+        # Pass 2 args
+        pass2_args = {
+            'c:v': codec,
+            'b:v': f'{video_bitrate_k}k',
+            'c:a': 'aac',
+            'b:a': '128k',
+            'pass': 2
+        }
+        if 'preset' in base_args: pass2_args['preset'] = base_args['preset']
+
+        # Hardware encoders usually don't support standard 2-pass with ffmpeg-python easily
+        # or require specific flags. For simplicity, if not libx264, use 1-pass VBR/CBR
+        if codec != 'libx264':
+            console.print(f"[yellow]Hardware encoder ({codec}) selected. Switching to single-pass bitrate mode.[/yellow]")
+            single_pass_args = {
+                'c:v': codec,
+                'b:v': f'{video_bitrate_k}k',
+                'c:a': 'aac',
+                'b:a': '128k',
+            }
+            # Add specific HW args if needed, e.g. rc=vbr for nvenc
+            if 'h264_nvenc' in codec:
+                single_pass_args['rc'] = 'vbr'
+
+            if 'preset' in base_args: single_pass_args['preset'] = base_args['preset']
+
+            stream = ffmpeg.output(stream, final_output, **single_pass_args)
+
+            if action_result == 'overwrite':
+                stream = stream.overwrite_output()
+
+            if run_command(stream, f"Compressing video ({codec})...", show_progress=True):
+                new_size = os.path.getsize(final_output) / (1024 * 1024)
+                console.print(f"[bold green]Compressed: {file_size_mb:.1f} MB → {new_size:.1f} MB[/bold green]")
+                console.print(f"[bold green]Saved to: {final_output}[/bold green]")
+            else:
+                console.print("[bold red]Compression failed.[/bold red]")
+
+            press_continue()
+            return
+
+        # CPU 2-pass implementation (original logic)
         stream = ffmpeg.output(
             stream, final_output,
             **{
@@ -174,15 +232,16 @@ def compress_video(file_path):
         if not check_disk_space(file_path):
             return
 
+        # Get encoding args from settings
+        encoding_args = get_global_encoding_args(quality="medium", crf=int(crf))
+
+        # Ensure audio codec is set
+        encoding_args['c:a'] = 'aac'
+        encoding_args['b:a'] = '128k'
+
         stream = ffmpeg.input(file_path).output(
             final_output,
-            **{
-                'c:v': 'libx264',
-                'crf': crf,
-                'preset': 'medium',
-                'c:a': 'aac',
-                'b:a': '128k'
-            }
+            **encoding_args
         )
 
         if action_result == 'overwrite':
@@ -262,9 +321,13 @@ def change_resolution(file_path):
 
     stream = ffmpeg.input(file_path)
     stream = stream.filter('scale', w=w, h=h)
+
+    encoding_args = get_global_encoding_args(crf=23)
+    encoding_args['c:a'] = 'copy'
+
     stream = ffmpeg.output(
         stream, final_output,
-        **{'c:v': 'libx264', 'crf': 23, 'c:a': 'copy'}
+        **encoding_args
     )
 
     if action_result == 'overwrite':

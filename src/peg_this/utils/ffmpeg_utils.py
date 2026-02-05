@@ -7,7 +7,17 @@ import ffmpeg
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 
+from peg_this.settings import Settings
+
 console = Console()
+
+
+def get_global_encoding_args(quality="medium", crf=23):
+    """
+    Helper to get standardized encoding arguments from global settings.
+    Proxies to Settings.get_encoding_args().
+    """
+    return Settings().get_encoding_args(quality, crf)
 
 
 def check_ffmpeg_ffprobe():

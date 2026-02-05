@@ -5,7 +5,7 @@ import ffmpeg
 import questionary
 from rich.console import Console
 
-from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream
+from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream, get_global_encoding_args
 from peg_this.utils.validation import (
     validate_input_file, check_output_file, validate_positive_integer, press_continue
 )
@@ -56,9 +56,11 @@ def convert_file(file_path):
         if quality == "Same as source":
             kwargs['c'] = 'copy'
         else:
-            crf = quality.split(" ")[-1][1:-1]
-            kwargs['c:v'] = 'libx264'
-            kwargs['crf'] = crf
+            crf = int(quality.split(" ")[-1][1:-1])
+            # Get standardized args (codec, preset, crf/qp)
+            encoding_args = get_global_encoding_args(quality="medium", crf=crf)
+            kwargs.update(encoding_args)
+
             kwargs['pix_fmt'] = 'yuv420p'
             if has_audio:
                 kwargs['c:a'] = 'aac'
