@@ -22,6 +22,8 @@ from peg_this.ui.state import UIState
 from peg_this.ui.preview import player
 from peg_this.utils.ffmpeg_utils import run_command
 from peg_this.utils.validation import validate_time_input, get_video_duration
+from peg_this.features.dubbing import LANGUAGES
+from peg_this.features.subtitle import extract_audio_for_whisper
 
 class UILogHandler(logging.Handler):
     """Redirects logs to the UI state."""
@@ -127,6 +129,9 @@ def collect_parameters(operation):
             params['model'] = dpg.get_value("param_whisper_model")
             params['mode'] = dpg.get_value("param_sub_mode")
             params['lang'] = dpg.get_value("param_lang")
+        elif operation == "AI Auto-Dubbing":
+            params['lang'] = dpg.get_value("param_dub_lang")
+            params['model'] = dpg.get_value("param_whisper_model")
         elif operation == "Remove Background":
             params['type'] = dpg.get_value("param_bg_type")
         elif operation == "Blur Faces":
@@ -234,6 +239,7 @@ def is_operation_compatible(file_path, operation):
         "PiP": ["video"],
         "Watermark": ["video"],
         "Subtitles (Whisper)": ["video", "audio"],
+        "AI Auto-Dubbing": ["video"],
         "Brainrot Captions": ["video"],
         "Remove Background": ["video", "image"],
         "Blur Faces": ["video"],
@@ -1195,6 +1201,41 @@ def _do_subtitles(state, params):
     finally:
         if os.path.exists(audio_path): os.remove(audio_path)
 
+def _do_auto_dub(state, params):
+    from peg_this.features.dubbing import run_dubbing_pipeline, LANGUAGES
+    
+    target_lang_name = params.get('lang', 'Spanish')
+    model_size = params.get('model', 'base')
+    
+    if target_lang_name not in LANGUAGES:
+        state.add_log(f"Error: Language {target_lang_name} not supported.")
+        return
+        
+    output_path = get_output_path(state.input_file, f"dubbed_{target_lang_name.lower()}")
+    if not confirm_overwrite(state, output_path): return
+
+    def progress_wrapper(p):
+        state.set_progress(p)
+
+    def log_wrapper(msg):
+        state.add_log(msg)
+
+    state.add_log(f"Starting Auto-Dubbing ({target_lang_name})...")
+    success = run_dubbing_pipeline(
+        input_file=state.input_file,
+        output_path=output_path,
+        target_lang_name=target_lang_name,
+        model_size=model_size,
+        progress_callback=progress_wrapper,
+        log_callback=log_wrapper
+    )
+
+    if success:
+        state.add_log(f"Dubbing complete: {output_path}")
+        state.last_generated_file = output_path # Ensure chaining works
+    else:
+        state.add_log("Dubbing failed.")
+
 def _do_brainrot(state, params):
     try:
         from faster_whisper import WhisperModel
@@ -1474,6 +1515,7 @@ def run_operation_threaded(operation_name_arg, params_arg):
             elif operation == "Rotate (Img)": _do_img_rotate(state, params)
             elif operation == "Flip (Img)": _do_img_flip(state, params)
             elif operation == "Subtitles (Whisper)": _do_subtitles(state, params)
+            elif operation == "AI Auto-Dubbing": _do_auto_dub(state, params)
             elif operation == "Music Separation": _do_music_separation(state, params)
             elif operation == "Remove Background": _do_remove_background(state, params)
             elif operation == "Blur Faces": _do_blur_faces(state, params)

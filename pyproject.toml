@@ -37,7 +37,12 @@ dependencies = [
     "rembg>=2.0.50",
     "onnxruntime>=1.16.0",
     "demucs>=4.0.0",
-    "dearpygui>=2.0.0"
+    "dearpygui>=2.0.0",
+    "piper-tts>=1.2.0",
+    "deep-translator>=1.11.0",
+    "pathvalidate>=3.2.0",
+    "pydub>=0.25.1",
+    "requests>=2.0.0"
 ]
 
 [project.optional-dependencies]

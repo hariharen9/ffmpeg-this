@@ -10,3 +10,8 @@ rembg
 onnxruntime
 demucs
 dearpygui
+piper-tts
+deep-translator
+pathvalidate
+pydub
+requests

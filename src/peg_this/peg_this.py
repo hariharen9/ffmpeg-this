@@ -23,6 +23,7 @@ from peg_this.features.inspect import inspect_file
 from peg_this.features.join import join_videos
 from peg_this.features.speed import change_speed, reverse_video, smooth_slow_motion
 from peg_this.features.subtitle import generate_subtitles, brainrot_captions
+from peg_this.features.dubbing import auto_dub
 from peg_this.features.trim import trim_video
 from peg_this.features.advanced import create_slideshow, metadata_editor, stabilize_video, create_gif_advanced
 from peg_this.features.music_separation import separate_stems
@@ -359,6 +360,7 @@ def main_menu():
                 "✨  Effects (Speed, Color, Denoise, PiP)",
                 questionary.Separator("──────── AI ─────────"),
                 "💬  AI Subtitles (Whisper)",
+                "🎙️  AI Auto-Dubbing",
                 "🎹  Separate Music Stems (Demucs)",
                 "🔥  Brainrot Captions",
                 "🧠  Background Removal",
@@ -389,6 +391,10 @@ def main_menu():
             file_path = select_media_file(filter_type="video")
             if file_path:
                 generate_subtitles(file_path)
+        elif "Auto-Dubbing" in choice:
+            file_path = select_media_file(filter_type="video")
+            if file_path:
+                auto_dub(file_path)
         elif "Separate Music Stems" in choice:
             file_path = select_media_file()
             if file_path:

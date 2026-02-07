@@ -265,6 +265,13 @@ def update_parameters_panel(operation):
         dpg.add_text("Language (Optional):", parent=parent)
         dpg.add_input_text(tag="param_lang", hint="e.g. en, fr, auto", default_value="auto", parent=parent)
 
+    elif operation == "AI Auto-Dubbing":
+        from peg_this.features.dubbing import LANGUAGES
+        dpg.add_text("Target Language:", parent=parent)
+        dpg.add_combo(tag="param_dub_lang", items=list(LANGUAGES.keys()), default_value="Spanish", parent=parent)
+        dpg.add_text("Model Size:", parent=parent)
+        dpg.add_combo(tag="param_whisper_model", items=["tiny", "base", "small"], default_value="base", parent=parent)
+
     elif operation == "Brainrot Captions":
         dpg.add_text("Style:", parent=parent)
         dpg.add_combo(tag="param_brainrot_style", items=["Classic", "Highlighted", "Colorful", "Neon", "Bold"], default_value="Classic", parent=parent)
@@ -345,7 +352,7 @@ def create_operations_panel():
     add_category("Edit", ["Trim", "Crop", "Split"])
     add_category("Audio", ["Extract Audio", "Remove Audio", "Volume", "Fade Audio", "Normalize Audio"])
     add_category("Effects", ["Speed", "Slow motion", "Reverse", "Rotate", "Flip", "Stabilize", "Fade Video", "Loop", "Color Correction", "Denoise", "Extract Frames", "PiP", "Watermark"])
-    add_category("AI Tools", ["Subtitles (Whisper)", "Brainrot Captions", "Remove Background", "Blur Faces", "Music Separation"])
+    add_category("AI Tools", ["Subtitles (Whisper)", "AI Auto-Dubbing", "Brainrot Captions", "Remove Background", "Blur Faces", "Music Separation"])
     add_category("Image", ["Convert Format (Img)", "Resize", "Rotate (Img)", "Flip (Img)"])
     add_category("Other", ["Audio Visualizer", "Inspect File", "Metadata", "Slideshow"])
 
