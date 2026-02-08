@@ -131,7 +131,9 @@ def collect_parameters(operation):
             params['lang'] = dpg.get_value("param_lang")
         elif operation == "AI Auto-Dubbing":
             params['lang'] = dpg.get_value("param_dub_lang")
-            params['model'] = dpg.get_value("param_whisper_model")
+            params['voice'] = dpg.get_value("param_dub_voice")
+            params['whisper_model'] = dpg.get_value("param_dub_whisper")
+            params['volume'] = dpg.get_value("param_dub_volume")
         elif operation == "Remove Background":
             params['type'] = dpg.get_value("param_bg_type")
         elif operation == "Blur Faces":
@@ -1210,16 +1212,38 @@ def _do_subtitles(state, params):
 
 def _do_auto_dub(state, params):
     from peg_this.features.dubbing import run_dubbing_pipeline, LANGUAGES
-    
-    target_lang_name = params.get('lang', 'Spanish')
-    model_size = params.get('model', 'base')
-    
-    if target_lang_name not in LANGUAGES:
-        state.add_log(f"Error: Language {target_lang_name} not supported.")
+
+    target_lang = params.get('lang', 'Spanish')
+    voice_raw = params.get('voice', '')
+    whisper_model = params.get('whisper_model', 'base')
+    volume_raw = params.get('volume', 'Quiet (10%)')
+
+    # Parse voice model from selection
+    voice_model = voice_raw.split(' ')[0] if voice_raw else None
+
+    # If no voice selected, get default for language
+    if not voice_model and target_lang in LANGUAGES:
+        voices = LANGUAGES[target_lang].get('voices', [])
+        if voices:
+            voice_model = voices[0][0]
+
+    if not voice_model:
+        state.add_log(f"Error: No voice available for {target_lang}")
         return
-        
-    output_path = get_output_path(state.input_file, f"dubbed_{target_lang_name.lower()}")
-    if not confirm_overwrite(state, output_path): return
+
+    # Parse volume
+    volume_map = {"Mute": 0.0, "Quiet": 0.1, "Low": 0.25, "Medium": 0.5}
+    original_volume = 0.1
+    for key, val in volume_map.items():
+        if key in volume_raw:
+            original_volume = val
+            break
+
+    # Output path
+    lang_suffix = target_lang.lower().replace(" ", "_")
+    output_path = get_output_path(state.input_file, f"dubbed_{lang_suffix}")
+    if not confirm_overwrite(state, output_path):
+        return
 
     def progress_wrapper(p):
         state.set_progress(p)
@@ -1227,19 +1251,23 @@ def _do_auto_dub(state, params):
     def log_wrapper(msg):
         state.add_log(msg)
 
-    state.add_log(f"Starting Auto-Dubbing ({target_lang_name})...")
+    state.add_log(f"Starting Auto-Dubbing to {target_lang}...")
+    state.add_log(f"Voice: {voice_model} | Whisper: {whisper_model} | Original Vol: {int(original_volume*100)}%")
+
     success = run_dubbing_pipeline(
         input_file=state.input_file,
         output_path=output_path,
-        target_lang_name=target_lang_name,
-        model_size=model_size,
+        target_lang=target_lang,
+        voice_model=voice_model,
+        whisper_model=whisper_model,
+        original_volume=original_volume,
         progress_callback=progress_wrapper,
         log_callback=log_wrapper
     )
 
     if success:
         state.add_log(f"Dubbing complete: {output_path}")
-        state.last_generated_file = output_path # Ensure chaining works
+        state.last_generated_file = output_path
     else:
         state.add_log("Dubbing failed.")
 

@@ -269,8 +269,18 @@ def update_parameters_panel(operation):
         from peg_this.features.dubbing import LANGUAGES
         dpg.add_text("Target Language:", parent=parent)
         dpg.add_combo(tag="param_dub_lang", items=list(LANGUAGES.keys()), default_value="Spanish", parent=parent)
-        dpg.add_text("Model Size:", parent=parent)
-        dpg.add_combo(tag="param_whisper_model", items=["tiny", "base", "small"], default_value="base", parent=parent)
+        dpg.add_text("Voice:", parent=parent)
+        # Default voices for Spanish - will be dynamic in a real implementation
+        dpg.add_combo(tag="param_dub_voice", items=[
+            "es_ES-davefx-medium (Male - Dave)",
+            "es_ES-sharvard-medium (Male - Sharvard)",
+            "es_MX-ald-medium (Male - Mexican)"
+        ], default_value="es_ES-davefx-medium (Male - Dave)", parent=parent)
+        dpg.add_text("Whisper Model:", parent=parent)
+        dpg.add_combo(tag="param_dub_whisper", items=["tiny", "base", "small", "medium"], default_value="base", parent=parent)
+        dpg.add_text("Original Audio Volume:", parent=parent)
+        dpg.add_combo(tag="param_dub_volume", items=["Mute (0%)", "Quiet (10%)", "Low (25%)", "Medium (50%)"], default_value="Quiet (10%)", parent=parent)
+        dpg.add_text("(24 languages supported with voice selection)", color=(100, 200, 100), parent=parent)
 
     elif operation == "Brainrot Captions":
         dpg.add_text("Style:", parent=parent)
