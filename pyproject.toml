@@ -42,7 +42,9 @@ dependencies = [
     "deep-translator>=1.11.0",
     "pathvalidate>=3.2.0",
     "pydub>=0.25.1",
-    "requests>=2.0.0"
+    "requests>=2.0.0",
+    "realesrgan>=0.3.0",
+    "basicsr>=1.4.2"
 ]
 
 [project.optional-dependencies]

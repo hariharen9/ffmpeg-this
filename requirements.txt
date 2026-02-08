@@ -15,3 +15,5 @@ deep-translator
 pathvalidate
 pydub
 requests
+realesrgan
+basicsr>=1.4.2

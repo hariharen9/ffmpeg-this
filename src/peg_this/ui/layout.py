@@ -58,7 +58,7 @@ def refresh_operation_availability():
         "Trim", "Crop", "Split",
         "Extract Audio", "Remove Audio", "Volume", "Fade Audio", "Normalize Audio",
         "Speed", "Slow motion", "Reverse", "Rotate", "Flip", "Stabilize", "Fade Video", "Loop", "Color Correction", "Denoise", "Extract Frames", "PiP", "Watermark",
-        "Subtitles (Whisper)", "Brainrot Captions", "Remove Background", "Blur Faces", "Music Separation",
+        "Subtitles (Whisper)", "Brainrot Captions", "Remove Background", "Blur Faces", "Music Separation", "Super Resolution",
         "Convert Format (Img)", "Resize", "Rotate (Img)", "Flip (Img)",
         "Audio Visualizer", "Inspect File", "Metadata", "Slideshow"
     ]
@@ -299,6 +299,27 @@ def update_parameters_panel(operation):
         dpg.add_text("Output Format:", parent=parent)
         dpg.add_combo(tag="param_stem_fmt", items=["mp3", "flac", "wav"], default_value="mp3", parent=parent)
 
+    elif operation == "Super Resolution":
+        dpg.add_text("Mode:", parent=parent)
+        dpg.add_combo(tag="param_upscale_mode", items=["Quick (FFmpeg)", "Fast AI", "Quality AI", "Anime AI"], default_value="Fast AI", parent=parent)
+        dpg.add_text("Scale Factor:", parent=parent)
+        dpg.add_combo(tag="param_upscale_factor", items=["2x", "4x"], default_value="2x", parent=parent)
+        dpg.add_text("AI Model:", parent=parent)
+        dpg.add_combo(tag="param_upscale_model", items=[
+            "RealESRGAN_x2plus (2x Native - Fastest)",
+            "realesr-general-x4v3 (4x Fast)",
+            "realesr-general-wdn-x4v3 (4x Fast + Denoise)",
+            "RealESRGAN_x4plus (4x Best Quality)",
+            "RealESRNet_x4plus (4x Balanced)",
+            "realesr-animevideov3 (Anime Fast)",
+            "RealESRGAN_x4plus_anime_6B (Anime Quality)"
+        ], default_value="RealESRGAN_x2plus (2x Native - Fastest)", parent=parent)
+        dpg.add_text("Memory/Tile Size:", parent=parent)
+        dpg.add_combo(tag="param_upscale_tile", items=["Auto (Recommended)", "No Tiling (Fast)", "512", "256", "128"], default_value="Auto (Recommended)", parent=parent)
+        dpg.add_text("FFmpeg Algorithm:", parent=parent)
+        dpg.add_combo(tag="param_upscale_algo", items=["lanczos", "bicubic", "bilinear", "spline"], default_value="lanczos", parent=parent)
+        dpg.add_text("(2x scale + RealESRGAN_x2plus = fastest AI)", color=(100, 200, 100), parent=parent)
+
     # --- Other Group ---
     elif operation == "Audio Visualizer":
         dpg.add_text("Style:", parent=parent)
@@ -352,7 +373,7 @@ def create_operations_panel():
     add_category("Edit", ["Trim", "Crop", "Split"])
     add_category("Audio", ["Extract Audio", "Remove Audio", "Volume", "Fade Audio", "Normalize Audio"])
     add_category("Effects", ["Speed", "Slow motion", "Reverse", "Rotate", "Flip", "Stabilize", "Fade Video", "Loop", "Color Correction", "Denoise", "Extract Frames", "PiP", "Watermark"])
-    add_category("AI Tools", ["Subtitles (Whisper)", "AI Auto-Dubbing", "Brainrot Captions", "Remove Background", "Blur Faces", "Music Separation"])
+    add_category("AI Tools", ["Subtitles (Whisper)", "AI Auto-Dubbing", "Brainrot Captions", "Remove Background", "Blur Faces", "Music Separation", "Super Resolution"])
     add_category("Image", ["Convert Format (Img)", "Resize", "Rotate (Img)", "Flip (Img)"])
     add_category("Other", ["Audio Visualizer", "Inspect File", "Metadata", "Slideshow"])
 

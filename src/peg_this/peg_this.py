@@ -27,6 +27,7 @@ from peg_this.features.dubbing import auto_dub
 from peg_this.features.trim import trim_video
 from peg_this.features.advanced import create_slideshow, metadata_editor, stabilize_video, create_gif_advanced
 from peg_this.features.music_separation import separate_stems
+from peg_this.features.upscale import upscale_video
 from peg_this.settings import settings_menu
 from peg_this.utils.ffmpeg_utils import check_ffmpeg_ffprobe
 from peg_this.utils.ui_utils import select_media_file
@@ -365,6 +366,7 @@ def main_menu():
                 "🔥  Brainrot Captions",
                 "🧠  Background Removal",
                 "👤  Auto Blur Faces",
+                "🚀  Video Upscaling (AI + Fast)",
                 questionary.Separator("─────── Image ───────"),
                 "🖼️  Image Tools",
                 questionary.Separator("─────── Other ───────"),
@@ -411,6 +413,10 @@ def main_menu():
             file_path = select_media_file(filter_type="video")
             if file_path:
                 auto_blur_faces(file_path)
+        elif "Upscaling" in choice:
+            file_path = select_media_file(filter_type="video")
+            if file_path:
+                upscale_video(file_path)
         elif "Metadata" in choice:
             file_path = select_media_file()
             if file_path:

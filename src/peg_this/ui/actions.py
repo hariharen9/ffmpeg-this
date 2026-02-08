@@ -181,6 +181,12 @@ def collect_parameters(operation):
         elif operation == "Brainrot Captions":
             params['style'] = dpg.get_value("param_brainrot_style")
             params['model'] = dpg.get_value("param_whisper_model")
+        elif operation == "Super Resolution":
+            params['mode'] = dpg.get_value("param_upscale_mode")
+            params['scale'] = dpg.get_value("param_upscale_factor")
+            params['model'] = dpg.get_value("param_upscale_model")
+            params['tile_size'] = dpg.get_value("param_upscale_tile")
+            params['algorithm'] = dpg.get_value("param_upscale_algo")
         elif operation == "Audio Visualizer":
             params['style'] = dpg.get_value("param_viz_style")
             params['res'] = dpg.get_value("param_viz_res")
@@ -244,6 +250,7 @@ def is_operation_compatible(file_path, operation):
         "Remove Background": ["video", "image"],
         "Blur Faces": ["video"],
         "Music Separation": ["video", "audio"],
+        "Super Resolution": ["video"],
         "Convert Format (Img)": ["image"],
         "Resize": ["image"],
         "Rotate (Img)": ["image"],
@@ -1455,6 +1462,65 @@ def _do_slideshow(state, params):
         if os.path.exists(concat_file):
             os.remove(concat_file)
 
+def _do_upscale(state, params):
+    mode = params.get('mode', 'Fast AI')
+    scale_str = params.get('scale', '2x')
+    model_raw = params.get('model', 'RealESRGAN_x2plus (2x Native - Fastest)')
+    tile_raw = params.get('tile_size', 'Auto (Recommended)')
+
+    # Parse model name (strip description)
+    model = model_raw.split(' ')[0] if model_raw else 'RealESRGAN_x2plus'
+
+    # Parse tile size
+    if 'Auto' in str(tile_raw):
+        tile_size = None  # Let the upscale function decide
+    elif 'No Tiling' in str(tile_raw):
+        tile_size = 0
+    else:
+        try:
+            tile_size = int(tile_raw)
+        except (ValueError, TypeError):
+            tile_size = None
+
+    scale_int = int(scale_str.replace('x', ''))
+
+    # Handle FFmpeg quick mode
+    if 'FFmpeg' in mode or 'Quick' in mode:
+        from peg_this.features.upscale import upscale_ffmpeg
+        algo = params.get('algorithm', 'lanczos')
+        suffix = f"upscaled_{scale_int}x_{algo}"
+        output_path = get_output_path(state.input_file, suffix, ".mp4")
+
+        if not confirm_overwrite(state, output_path): return
+
+        state.add_log(f"Quick upscaling ({scale_str}) using {algo}...")
+        upscale_ffmpeg(state.input_file, scale_factor=scale_int, algorithm=algo, output_path=output_path)
+        state.add_log(f"Upscaling complete: {output_path}")
+        return
+
+    # AI upscaling
+    from peg_this.features.upscale import upscale_video
+
+    suffix = f"upscaled_{scale_int}x_{model}"
+    output_path = get_output_path(state.input_file, suffix, ".mp4")
+
+    if not confirm_overwrite(state, output_path): return
+
+    tile_info = f"Auto" if tile_size is None else (f"None" if tile_size == 0 else f"{tile_size}")
+    state.add_log(f"AI Upscaling ({scale_str}) using {model}...")
+    state.add_log(f"Tile size: {tile_info} | This may take a while...")
+
+    upscale_video(
+        state.input_file,
+        scale_factor=scale_str,
+        model_type=model,
+        output_path=output_path,
+        tile_size=tile_size,
+        fast_mode=True
+    )
+
+    state.add_log(f"Upscaling complete: {output_path}")
+
 # --- Dispatcher ---
 
 def run_operation_threaded(operation_name_arg, params_arg):
@@ -1517,6 +1583,7 @@ def run_operation_threaded(operation_name_arg, params_arg):
             elif operation == "Subtitles (Whisper)": _do_subtitles(state, params)
             elif operation == "AI Auto-Dubbing": _do_auto_dub(state, params)
             elif operation == "Music Separation": _do_music_separation(state, params)
+            elif operation == "Super Resolution": _do_upscale(state, params)
             elif operation == "Remove Background": _do_remove_background(state, params)
             elif operation == "Blur Faces": _do_blur_faces(state, params)
             elif operation == "Inspect File": _do_inspect(state, params)
