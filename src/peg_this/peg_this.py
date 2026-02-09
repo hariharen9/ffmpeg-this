@@ -15,7 +15,7 @@ from rich.align import Align
 from peg_this.features.audio import extract_audio, remove_audio, adjust_volume, audio_fade, normalize_audio
 from peg_this.features.batch import batch_convert
 from peg_this.features.compress import compress_video, change_resolution
-from peg_this.features.convert import convert_file, convert_image, resize_image, rotate_image, flip_image
+from peg_this.features.convert import convert_file, convert_image, resize_image, rotate_image, flip_image, adjust_image_colors, blur_sharpen_image, image_effects, add_image_border, compress_image, add_image_text
 from peg_this.features.crop import crop_video, crop_image
 from peg_this.features.effects import add_watermark, merge_audio_video, video_fade, loop_video, color_correction, denoise_video, picture_in_picture, blur_region, auto_blur_faces, audio_visualizer, rotate_video, flip_video, remove_background
 from peg_this.features.frames import extract_frames, split_video
@@ -81,27 +81,26 @@ def show_landing():
             "Trim / Crop / Split",
             "Join / Merge",
             "Convert / Compress",
-            "Change Resolution"
+            "Effects / Filters"
         ], "blue"),
-        create_feature_panel("✨ Effects", [
-            "Speed / Reverse",
-            "Color Correction",
-            "AI Face Blur",
-            "Stabilize / Denoise"
-        ], "magenta"),
-        create_feature_panel("🎵 Audio & AI", [
-            "AI Subtitles",
-            "Separate Music Stems",
+        create_feature_panel("🖼️ Image", [
+            "Resize / Rotate / Crop",
+            "Colors / Blur / Effects",
+            "Border / Text",
+            "Compress / Convert"
+        ], "cyan"),
+        create_feature_panel("🎵 Audio", [
             "Extract / Remove",
             "Volume / Normalize",
-            "Audio Visualizer"
+            "Fade / Convert",
+            "Visualizer"
         ], "green"),
-        create_feature_panel("🛠️ Tools", [
-            "Create Slideshow",
-            "Metadata Editor",
-            "GIF Maker",
-            "Image Tools"
-        ], "yellow"),
+        create_feature_panel("🤖 AI", [
+            "Subtitles / Captions",
+            "Music Stem Separation",
+            "Background Removal",
+            "Upscaling / Face Blur"
+        ], "magenta"),
     ]
 
     console.print(Columns(panels, equal=True, expand=True))
@@ -141,6 +140,10 @@ def select_with_back(message, choices):
     return question.ask()
 
 
+# =============================================================================
+# VIDEO MENUS
+# =============================================================================
+
 def video_edit_menu():
     action = select_with_back(
         "Select an edit action:",
@@ -149,6 +152,7 @@ def video_edit_menu():
             "Crop Video (Visual)",
             "Split Video",
             "Join Multiple Videos",
+            "Extract Frames",
             questionary.Separator(),
             "← Back"
         ]
@@ -169,46 +173,7 @@ def video_edit_menu():
         "Trim Video": trim_video,
         "Crop Video (Visual)": crop_video,
         "Split Video": split_video,
-    }
-
-    if action in actions:
-        actions[action](file_path)
-
-
-def video_audio_menu():
-    action = select_with_back(
-        "Select an audio action:",
-        choices=[
-            "Separate Music Stems (AI)",
-            "Extract Audio",
-            "Remove Audio",
-            "Merge Audio with Video",
-            "Adjust Volume",
-            "Audio Fade In/Out",
-            "Normalize Audio",
-            questionary.Separator(),
-            "← Back"
-        ]
-    )
-
-    if action == "← Back" or action is None:
-        return
-
-    if action == "Separate Music Stems (AI)":
-        file_path = select_media_file()
-    else:
-        file_path = select_media_file(filter_type="video")
-    if not file_path:
-        return
-
-    actions = {
-        "Separate Music Stems (AI)": separate_stems,
-        "Extract Audio": extract_audio,
-        "Remove Audio": remove_audio,
-        "Merge Audio with Video": merge_audio_video,
-        "Adjust Volume": adjust_volume,
-        "Audio Fade In/Out": audio_fade,
-        "Normalize Audio": normalize_audio,
+        "Extract Frames": extract_frames,
     }
 
     if action in actions:
@@ -222,19 +187,13 @@ def video_convert_menu():
             "Convert Format",
             "Compress Video",
             "Change Resolution",
-            "Create GIF (Advanced)",
+            "Create GIF",
             questionary.Separator(),
             "← Back"
         ]
     )
 
     if action == "← Back" or action is None:
-        return
-
-    if action == "Create GIF (Advanced)":
-        file_path = select_media_file(filter_type="video")
-        if file_path:
-            create_gif_advanced(file_path)
         return
 
     file_path = select_media_file(filter_type="video")
@@ -245,6 +204,7 @@ def video_convert_menu():
         "Convert Format": convert_file,
         "Compress Video": compress_video,
         "Change Resolution": change_resolution,
+        "Create GIF": create_gif_advanced,
     }
 
     if action in actions:
@@ -258,8 +218,7 @@ def video_effects_menu():
             "Change Speed",
             "Smooth Slow Motion (Optical Flow)",
             "Reverse Video",
-            "Rotate Video",
-            "Flip Video",
+            "Rotate / Flip",
             "Video Fade In/Out",
             "Loop Video",
             "Color Correction",
@@ -268,7 +227,6 @@ def video_effects_menu():
             "Add Watermark",
             "Picture-in-Picture",
             "Stabilize Video",
-            "Extract Frames",
             questionary.Separator(),
             "← Back"
         ]
@@ -277,11 +235,29 @@ def video_effects_menu():
     if action == "← Back" or action is None:
         return
 
-    if action == "Separate Music Stems (AI)":
-        file_path = select_media_file()
-    else:
+    # Handle Rotate/Flip submenu
+    if action == "Rotate / Flip":
+        sub_action = select_with_back(
+            "Select transform:",
+            choices=[
+                "Rotate Video",
+                "Flip Video",
+                questionary.Separator(),
+                "← Back"
+            ]
+        )
+        if sub_action == "← Back" or sub_action is None:
+            return
         file_path = select_media_file(filter_type="video")
+        if not file_path:
+            return
+        if sub_action == "Rotate Video":
+            rotate_video(file_path)
+        else:
+            flip_video(file_path)
+        return
 
+    file_path = select_media_file(filter_type="video")
     if not file_path:
         return
 
@@ -289,10 +265,7 @@ def video_effects_menu():
         "Change Speed": change_speed,
         "Smooth Slow Motion (Optical Flow)": smooth_slow_motion,
         "Reverse Video": reverse_video,
-        "Rotate Video": rotate_video,
-        "Flip Video": flip_video,
         "Add Watermark": add_watermark,
-        "Extract Frames": extract_frames,
         "Video Fade In/Out": video_fade,
         "Loop Video": loop_video,
         "Color Correction": color_correction,
@@ -306,11 +279,14 @@ def video_effects_menu():
         actions[action](file_path)
 
 
-def image_menu():
+# =============================================================================
+# IMAGE MENUS
+# =============================================================================
+
+def image_transform_menu():
     action = select_with_back(
-        "Select an image action:",
+        "Select a transform action:",
         choices=[
-            "Convert Format",
             "Resize",
             "Rotate",
             "Flip",
@@ -328,7 +304,6 @@ def image_menu():
         return
 
     actions = {
-        "Convert Format": convert_image,
         "Resize": resize_image,
         "Rotate": rotate_image,
         "Flip": flip_image,
@@ -339,11 +314,186 @@ def image_menu():
         actions[action](file_path)
 
 
+def image_adjust_menu():
+    action = select_with_back(
+        "Select an adjustment:",
+        choices=[
+            "Adjust Colors (Brightness/Contrast/Saturation)",
+            "Blur / Sharpen",
+            "Effects (Grayscale/Sepia/Invert)",
+            questionary.Separator(),
+            "← Back"
+        ]
+    )
+
+    if action == "← Back" or action is None:
+        return
+
+    file_path = select_media_file(filter_type="image")
+    if not file_path:
+        return
+
+    actions = {
+        "Adjust Colors (Brightness/Contrast/Saturation)": adjust_image_colors,
+        "Blur / Sharpen": blur_sharpen_image,
+        "Effects (Grayscale/Sepia/Invert)": image_effects,
+    }
+
+    if action in actions:
+        actions[action](file_path)
+
+
+def image_add_menu():
+    action = select_with_back(
+        "Select what to add:",
+        choices=[
+            "Add Border",
+            "Add Text / Caption",
+            questionary.Separator(),
+            "← Back"
+        ]
+    )
+
+    if action == "← Back" or action is None:
+        return
+
+    file_path = select_media_file(filter_type="image")
+    if not file_path:
+        return
+
+    actions = {
+        "Add Border": add_image_border,
+        "Add Text / Caption": add_image_text,
+    }
+
+    if action in actions:
+        actions[action](file_path)
+
+
+def image_convert_menu():
+    action = select_with_back(
+        "Select a convert action:",
+        choices=[
+            "Convert Format",
+            "Compress / Optimize",
+            questionary.Separator(),
+            "← Back"
+        ]
+    )
+
+    if action == "← Back" or action is None:
+        return
+
+    file_path = select_media_file(filter_type="image")
+    if not file_path:
+        return
+
+    actions = {
+        "Convert Format": convert_image,
+        "Compress / Optimize": compress_image,
+    }
+
+    if action in actions:
+        actions[action](file_path)
+
+
+# =============================================================================
+# AUDIO MENUS
+# =============================================================================
+
+def audio_edit_menu():
+    action = select_with_back(
+        "Select an edit action:",
+        choices=[
+            "Extract Audio from Video",
+            "Remove Audio from Video",
+            "Merge Audio with Video",
+            questionary.Separator(),
+            "← Back"
+        ]
+    )
+
+    if action == "← Back" or action is None:
+        return
+
+    file_path = select_media_file(filter_type="video")
+    if not file_path:
+        return
+
+    actions = {
+        "Extract Audio from Video": extract_audio,
+        "Remove Audio from Video": remove_audio,
+        "Merge Audio with Video": merge_audio_video,
+    }
+
+    if action in actions:
+        actions[action](file_path)
+
+
+def audio_adjust_menu():
+    action = select_with_back(
+        "Select an adjustment:",
+        choices=[
+            "Adjust Volume",
+            "Audio Fade In/Out",
+            "Normalize Audio",
+            questionary.Separator(),
+            "← Back"
+        ]
+    )
+
+    if action == "← Back" or action is None:
+        return
+
+    # These work on both video and audio files
+    file_path = select_media_file()
+    if not file_path:
+        return
+
+    actions = {
+        "Adjust Volume": adjust_volume,
+        "Audio Fade In/Out": audio_fade,
+        "Normalize Audio": normalize_audio,
+    }
+
+    if action in actions:
+        actions[action](file_path)
+
+
+def audio_convert_menu():
+    action = select_with_back(
+        "Select a convert action:",
+        choices=[
+            "Convert Audio Format",
+            questionary.Separator(),
+            "← Back"
+        ]
+    )
+
+    if action == "← Back" or action is None:
+        return
+
+    file_path = select_media_file()
+    if not file_path:
+        return
+
+    if action == "Convert Audio Format":
+        convert_file(file_path)
+
+
+# =============================================================================
+# OTHER MENUS
+# =============================================================================
+
 def inspect_menu():
     file_path = select_media_file()
     if file_path:
         inspect_file(file_path)
 
+
+# =============================================================================
+# MAIN MENU
+# =============================================================================
 
 def main_menu():
     check_ffmpeg_ffprobe()
@@ -355,23 +505,29 @@ def main_menu():
             "What would you like to do?",
             choices=[
                 questionary.Separator("─────── Video ───────"),
-                "✂️  Edit (Trim, Crop, Split, Join)",
-                "🎵  Audio (Extract, Remove, Volume, Fade)",
-                "🔄  Convert (Format, Compress, GIF)",
-                "✨  Effects (Speed, Color, Denoise, PiP)",
+                "✂️  Edit (Trim, Crop, Split, Join, Frames)",
+                "🔄  Convert (Format, Compress, Resolution, GIF)",
+                "✨  Effects (Speed, Color, Denoise, Watermark)",
+                questionary.Separator("─────── Image ───────"),
+                "🖼️  Transform (Resize, Rotate, Flip, Crop)",
+                "🎨  Adjust (Colors, Blur, Effects)",
+                "✏️  Add (Border, Text)",
+                "📁  Convert (Format, Compress)",
+                questionary.Separator("─────── Audio ───────"),
+                "🎵  Edit (Extract, Remove, Merge)",
+                "🔊  Adjust (Volume, Fade, Normalize)",
+                "💿  Convert (Format)",
+                "🎼  Visualizer",
                 questionary.Separator("──────── AI ─────────"),
-                "💬  AI Subtitles (Whisper)",
-                "🎙️  AI Auto-Dubbing",
-                "🎹  Separate Music Stems (Demucs)",
+                "💬  Subtitles (Whisper)",
                 "🔥  Brainrot Captions",
+                "🎙️  Auto-Dubbing",
+                "🎹  Separate Music Stems (Demucs)",
                 "🧠  Background Removal",
                 "👤  Auto Blur Faces",
-                "🚀  Video Upscaling (AI + Fast)",
-                questionary.Separator("─────── Image ───────"),
-                "🖼️  Image Tools",
+                "🚀  Video Upscaling",
                 questionary.Separator("─────── Other ───────"),
                 "🎬  Create Slideshow",
-                "🎼  Audio Visualizer",
                 "📝  Metadata Editor",
                 "📦  Batch Convert",
                 "🔍  Inspect File",
@@ -389,10 +545,46 @@ def main_menu():
             console.print()
             console.print("[dim italic]Built with ❤️ by [link=https://hariharen.site]Hariharen[/link][/dim italic]")
             break
-        elif "AI Subtitles" in choice:
+
+        # --- VIDEO ---
+        elif "Edit (Trim" in choice:
+            video_edit_menu()
+        elif "Convert (Format, Compress, Resolution" in choice:
+            video_convert_menu()
+        elif "Effects (Speed" in choice:
+            video_effects_menu()
+
+        # --- IMAGE ---
+        elif "Transform (Resize" in choice:
+            image_transform_menu()
+        elif "Adjust (Colors" in choice:
+            image_adjust_menu()
+        elif "Add (Border" in choice:
+            image_add_menu()
+        elif "Convert (Format, Compress)" in choice:
+            image_convert_menu()
+
+        # --- AUDIO ---
+        elif "Edit (Extract" in choice:
+            audio_edit_menu()
+        elif "Adjust (Volume" in choice:
+            audio_adjust_menu()
+        elif "Convert (Format)" in choice:
+            audio_convert_menu()
+        elif "Visualizer" in choice:
+            file_path = select_media_file()
+            if file_path:
+                audio_visualizer(file_path)
+
+        # --- AI ---
+        elif "Subtitles (Whisper)" in choice:
             file_path = select_media_file(filter_type="video")
             if file_path:
                 generate_subtitles(file_path)
+        elif "Brainrot" in choice:
+            file_path = select_media_file(filter_type="video")
+            if file_path:
+                brainrot_captions(file_path)
         elif "Auto-Dubbing" in choice:
             file_path = select_media_file(filter_type="video")
             if file_path:
@@ -401,10 +593,6 @@ def main_menu():
             file_path = select_media_file()
             if file_path:
                 separate_stems(file_path)
-        elif "Brainrot" in choice:
-            file_path = select_media_file(filter_type="video")
-            if file_path:
-                brainrot_captions(file_path)
         elif "Background Removal" in choice:
             file_path = select_media_file()
             if file_path:
@@ -417,26 +605,14 @@ def main_menu():
             file_path = select_media_file(filter_type="video")
             if file_path:
                 upscale_video(file_path)
+
+        # --- OTHER ---
+        elif "Slideshow" in choice:
+            create_slideshow()
         elif "Metadata" in choice:
             file_path = select_media_file()
             if file_path:
                 metadata_editor(file_path)
-        elif "Visualizer" in choice:
-            file_path = select_media_file()
-            if file_path:
-                audio_visualizer(file_path)
-        elif "Edit" in choice:
-            video_edit_menu()
-        elif "Audio" in choice:
-            video_audio_menu()
-        elif "Convert" in choice:
-            video_convert_menu()
-        elif "Effects" in choice:
-            video_effects_menu()
-        elif "Image" in choice:
-            image_menu()
-        elif "Slideshow" in choice:
-            create_slideshow()
         elif "Batch" in choice:
             batch_convert()
         elif "Inspect" in choice:
