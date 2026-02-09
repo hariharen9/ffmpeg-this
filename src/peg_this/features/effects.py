@@ -765,11 +765,10 @@ def picture_in_picture(file_path):
 def blur_region(file_path):
     """Apply blur or pixelate effect to selected regions of video."""
     try:
-        import tkinter as tk
-        from PIL import Image, ImageTk
+        import cv2
     except ImportError:
-        console.print("[bold red]Cannot perform visual selection: tkinter & Pillow are not installed.[/bold red]")
-        console.print("[dim]Install them with: pip install tk Pillow[/dim]")
+        console.print("[bold red]Cannot perform visual selection: OpenCV is not installed.[/bold red]")
+        console.print("[dim]Install with: pip install opencv-python[/dim]")
         press_continue()
         return
 
@@ -900,157 +899,92 @@ def blur_region(file_path):
         video_width = int(video_stream['width'])
         video_height = int(video_stream['height'])
 
-        # Visual region selection with Tkinter
+        # Load image with OpenCV
+        img = cv2.imread(preview_frame)
+        if img is None:
+            console.print("[bold red]Could not load preview frame.[/bold red]")
+            press_continue()
+            return
+
+        # Resize if too large for screen (keep aspect ratio)
+        max_dim = 1200
+        h, w = img.shape[:2]
+        scale = 1.0
+        if max(h, w) > max_dim:
+            scale = max_dim / max(h, w)
+            img_display = cv2.resize(img, (int(w * scale), int(h * scale)))
+        else:
+            img_display = img.copy()
+
+        # Allow multiple region selection with OpenCV
         regions = []
-        root = tk.Tk()
-        root.title("Blur/Pixelate - Draw rectangles, press 'u' to undo, close when done")
-        root.attributes("-topmost", True)
+        window_name = "Select Blur Regions - ENTER to confirm region, ESC when done"
 
-        img = Image.open(preview_frame)
+        console.print("[bold cyan]Instructions:[/bold cyan]")
+        console.print("[cyan]  - Draw a rectangle with your mouse[/cyan]")
+        console.print("[cyan]  - Press ENTER or SPACE to confirm each region[/cyan]")
+        console.print("[cyan]  - Press C to cancel current selection[/cyan]")
+        console.print("[cyan]  - Press ESC when done selecting all regions[/cyan]")
 
-        # Calculate scale factor for display
-        max_display_width = min(root.winfo_screenwidth() - 100, video_width)
-        max_display_height = min(root.winfo_screenheight() - 150, video_height)
+        while True:
+            # Show current regions on image
+            img_with_regions = img_display.copy()
+            for i, region in enumerate(regions):
+                # Scale region coordinates for display
+                x1 = int(region['x'] * scale)
+                y1 = int(region['y'] * scale)
+                x2 = int((region['x'] + region['w']) * scale)
+                y2 = int((region['y'] + region['h']) * scale)
+                cv2.rectangle(img_with_regions, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                cv2.putText(img_with_regions, str(i + 1), (x1 + 5, y1 + 20),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
-        display_scale = min(max_display_width / video_width, max_display_height / video_height, 1.0)
-        display_width = int(video_width * display_scale)
-        display_height = int(video_height * display_scale)
+            # Display region count
+            cv2.putText(img_with_regions, f"Regions: {len(regions)} | ESC to finish",
+                       (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
 
-        if display_scale < 1.0:
-            img = img.resize((display_width, display_height), Image.Resampling.LANCZOS)
+            try:
+                roi = cv2.selectROI(window_name, img_with_regions, fromCenter=False, showCrosshair=True)
+            except Exception:
+                break
 
-        img_tk = ImageTk.PhotoImage(img, master=root)
+            x, y, rw, rh = roi
 
-        # Main frame
-        main_frame = tk.Frame(root)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+            # ESC pressed or window closed (roi is all zeros)
+            if rw < 5 and rh < 5:
+                break
 
-        # Canvas for drawing
-        canvas = tk.Canvas(main_frame, width=display_width, height=display_height, cursor="cross")
-        canvas.pack()
-        canvas.create_image(0, 0, anchor=tk.NW, image=img_tk)
+            # Scale back to original video coordinates
+            actual_x = int(x / scale)
+            actual_y = int(y / scale)
+            actual_w = int(rw / scale)
+            actual_h = int(rh / scale)
 
-        # Instructions frame
-        instructions = tk.Frame(root)
-        instructions.pack(fill=tk.X, padx=10, pady=5)
+            # Clamp to video bounds
+            actual_x = max(0, min(actual_x, video_width - 2))
+            actual_y = max(0, min(actual_y, video_height - 2))
+            actual_w = max(2, min(actual_w, video_width - actual_x))
+            actual_h = max(2, min(actual_h, video_height - actual_y))
 
-        tk.Label(
-            instructions,
-            text="Draw rectangles to select regions. Press 'u' to undo. Close window when done.",
-            font=("Arial", 10)
-        ).pack()
+            regions.append({
+                "x": actual_x,
+                "y": actual_y,
+                "w": actual_w,
+                "h": actual_h
+            })
 
-        # Status label
-        status_var = tk.StringVar(value="Regions: 0")
-        status_label = tk.Label(instructions, textvariable=status_var, font=("Arial", 10, "bold"))
-        status_label.pack()
+            console.print(f"[green]Region {len(regions)} added: {actual_w}x{actual_h} at ({actual_x}, {actual_y})[/green]")
 
-        # Done button
-        def on_done():
-            root.quit()
-            root.destroy()
+            # Ask if user wants to add more
+            add_more = questionary.confirm("Add another region?", default=True).ask()
+            if not add_more:
+                break
 
-        done_btn = tk.Button(instructions, text="Done - Apply Effect", command=on_done,
-                            bg="#4CAF50", fg="white", font=("Arial", 10, "bold"), padx=20, pady=5)
-        done_btn.pack(pady=10)
-
-        rect_data = {"current_rect": None, "start_x": 0, "start_y": 0}
-        drawn_rects = []
-
-        def on_press(event):
-            rect_data["start_x"] = event.x
-            rect_data["start_y"] = event.y
-            rect_data["current_rect"] = canvas.create_rectangle(
-                event.x, event.y, event.x, event.y,
-                outline='red', width=2, dash=(4, 2)
-            )
-
-        def on_drag(event):
-            if rect_data["current_rect"]:
-                canvas.coords(
-                    rect_data["current_rect"],
-                    rect_data["start_x"], rect_data["start_y"],
-                    event.x, event.y
-                )
-
-        def on_release(event):
-            if rect_data["current_rect"]:
-                x1, y1 = rect_data["start_x"], rect_data["start_y"]
-                x2, y2 = event.x, event.y
-
-                # Normalize coordinates
-                x1, x2 = min(x1, x2), max(x1, x2)
-                y1, y2 = min(y1, y2), max(y1, y2)
-
-                # Check minimum size
-                if (x2 - x1) >= 10 and (y2 - y1) >= 10:
-                    # Convert to actual video coordinates
-                    actual_x1 = int(x1 / display_scale)
-                    actual_y1 = int(y1 / display_scale)
-                    actual_x2 = int(x2 / display_scale)
-                    actual_y2 = int(y2 / display_scale)
-
-                    # Clamp to video bounds
-                    actual_x1 = max(0, min(actual_x1, video_width))
-                    actual_y1 = max(0, min(actual_y1, video_height))
-                    actual_x2 = max(0, min(actual_x2, video_width))
-                    actual_y2 = max(0, min(actual_y2, video_height))
-
-                    regions.append({
-                        "x": actual_x1,
-                        "y": actual_y1,
-                        "w": actual_x2 - actual_x1,
-                        "h": actual_y2 - actual_y1
-                    })
-
-                    # Update rectangle to solid line
-                    canvas.delete(rect_data["current_rect"])
-                    final_rect = canvas.create_rectangle(
-                        x1, y1, x2, y2,
-                        outline='green', width=2
-                    )
-                    drawn_rects.append(final_rect)
-
-                    # Add region number label
-                    label = canvas.create_text(
-                        x1 + 5, y1 + 5,
-                        text=str(len(regions)),
-                        anchor=tk.NW,
-                        fill='green',
-                        font=('Arial', 12, 'bold')
-                    )
-                    drawn_rects.append(label)
-
-                    status_var.set(f"Regions: {len(regions)}")
-                else:
-                    canvas.delete(rect_data["current_rect"])
-
-                rect_data["current_rect"] = None
-
-        def undo_last(event=None):
-            if regions and len(drawn_rects) >= 2:
-                regions.pop()
-                canvas.delete(drawn_rects.pop())
-                canvas.delete(drawn_rects.pop())
-                status_var.set(f"Regions: {len(regions)}")
-
-        canvas.bind("<ButtonPress-1>", on_press)
-        canvas.bind("<B1-Motion>", on_drag)
-        canvas.bind("<ButtonRelease-1>", on_release)
-        root.bind("u", undo_last)
-        root.bind("U", undo_last)
-        root.bind("<Return>", lambda e: on_done())
-        root.bind("<Escape>", lambda e: on_done())
-        root.protocol("WM_DELETE_WINDOW", on_done)
-
-        console.print("[bold cyan]Instructions: Draw rectangles around areas to blur/pixelate. Press 'u' to undo. Click 'Done' or press Enter when finished.[/bold cyan]")
-
-        root.lift()
-        root.after_idle(root.attributes, '-topmost', False)
-        root.mainloop()
+        cv2.destroyAllWindows()
 
         if not regions:
             console.print("[bold yellow]No regions selected. Operation cancelled.[/bold yellow]")
+            press_continue()
             return
 
         console.print(f"[dim]Selected {len(regions)} region(s) to process.[/dim]")
@@ -1090,7 +1024,6 @@ def blur_region(file_path):
         valid_region_count = 0
 
         # Determine enable expression for time-based effect
-        # Note: In filter_complex, commas in expressions don't need escaping when using quotes
         if "Specific" in time_mode:
             enable_expr = f"between(t,{start_time},{end_time})"
         else:
@@ -1106,7 +1039,6 @@ def blur_region(file_path):
             h = max(2, min(h, video_height - y))
 
             # Ensure dimensions are even (required by video encoders)
-            # Reduce by 1 if odd (to stay within bounds)
             w = w if w % 2 == 0 else w - 1
             h = h if h % 2 == 0 else h - 1
 
@@ -1130,15 +1062,12 @@ def blur_region(file_path):
                 effect_filter = f"scale={down_w}:{down_h},scale={w}:{h}:flags=neighbor"
 
             if enable_expr:
-                # Time-based: overlay with enable
-                # Note: enable expression needs escaped quotes for FFmpeg filter parsing
                 filter_complex_parts.append(
                     f"{last_video}split[main{i}][copy{i}];"
                     f"[copy{i}]crop={w}:{h}:{x}:{y},{effect_filter}[blur{i}];"
                     f"[main{i}][blur{i}]overlay={x}:{y}:enable='{enable_expr}'[out{i}]"
                 )
             else:
-                # Full video: crop, effect, overlay
                 filter_complex_parts.append(
                     f"{last_video}split[main{i}][copy{i}];"
                     f"[copy{i}]crop={w}:{h}:{x}:{y},{effect_filter}[blur{i}];"
@@ -1189,9 +1118,7 @@ def blur_region(file_path):
         else:
             console.print("[bold red]Failed to apply effect.[/bold red]")
             if result.stderr:
-                # Find the actual error line (usually after "Error" or at the end)
                 error_lines = result.stderr.strip().split('\n')
-                # Look for lines containing "Error" or get last few lines
                 error_found = [l for l in error_lines if 'Error' in l or 'error' in l or 'Invalid' in l]
                 if error_found:
                     error_msg = '\n'.join(error_found[-3:])

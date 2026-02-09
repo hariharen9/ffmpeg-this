@@ -11,18 +11,70 @@ from peg_this.utils.validation import (
 )
 
 try:
-    import tkinter as tk
-    from PIL import Image, ImageTk
+    import cv2
+    CV2_AVAILABLE = True
 except ImportError:
-    tk = None
+    CV2_AVAILABLE = False
 
 console = Console()
 
 
+def _select_roi_with_opencv(image_path, window_title="Select Region"):
+    """
+    Use OpenCV's selectROI to let user draw a rectangle.
+    Returns (x, y, width, height) or None if cancelled.
+    """
+    if not CV2_AVAILABLE:
+        console.print("[bold red]OpenCV is not installed. Cannot perform visual selection.[/bold red]")
+        console.print("[dim]Install with: pip install opencv-python[/dim]")
+        return None
+
+    img = cv2.imread(image_path)
+    if img is None:
+        console.print("[bold red]Could not load image for selection.[/bold red]")
+        return None
+
+    # Resize if too large for screen (keep aspect ratio)
+    max_dim = 1200
+    h, w = img.shape[:2]
+    scale = 1.0
+    if max(h, w) > max_dim:
+        scale = max_dim / max(h, w)
+        img_display = cv2.resize(img, (int(w * scale), int(h * scale)))
+    else:
+        img_display = img.copy()
+
+    console.print("[bold cyan]Instructions: Draw a rectangle with your mouse. Press ENTER or SPACE to confirm, C to cancel.[/bold cyan]")
+
+    # Select ROI
+    try:
+        roi = cv2.selectROI(window_title, img_display, fromCenter=False, showCrosshair=True)
+        cv2.destroyAllWindows()
+    except Exception as e:
+        cv2.destroyAllWindows()
+        console.print(f"[bold red]Selection error: {e}[/bold red]")
+        return None
+
+    # roi is (x, y, w, h)
+    x, y, rw, rh = roi
+
+    if rw < 2 or rh < 2:
+        return None
+
+    # Scale back to original image coordinates
+    if scale != 1.0:
+        x = int(x / scale)
+        y = int(y / scale)
+        rw = int(rw / scale)
+        rh = int(rh / scale)
+
+    return (x, y, rw, rh)
+
+
 def crop_video(file_path):
-    if not tk:
-        console.print("[bold red]Cannot perform visual cropping: tkinter & Pillow are not installed.[/bold red]")
-        console.print("[dim]Install them with: pip install tk Pillow[/dim]")
+    if not CV2_AVAILABLE:
+        console.print("[bold red]Cannot perform visual cropping: OpenCV is not installed.[/bold red]")
+        console.print("[dim]Install with: pip install opencv-python[/dim]")
         press_continue()
         return
 
@@ -55,47 +107,15 @@ def crop_video(file_path):
             press_continue()
             return
 
-        root = tk.Tk()
-        root.title("Crop Video - Drag to select area, close window to confirm")
-        root.attributes("-topmost", True)
+        # Use OpenCV for selection
+        roi = _select_roi_with_opencv(preview_frame, "Crop Video - Draw rectangle, ENTER to confirm, C to cancel")
 
-        img = Image.open(preview_frame)
-        img_tk = ImageTk.PhotoImage(img, master=root)
-
-        canvas = tk.Canvas(root, width=img.width, height=img.height, cursor="cross")
-        canvas.pack()
-        canvas.create_image(0, 0, anchor=tk.NW, image=img_tk)
-
-        rect_coords = {"x1": 0, "y1": 0, "x2": 0, "y2": 0}
-        rect_id = None
-
-        def on_press(event):
-            nonlocal rect_id
-            rect_coords['x1'], rect_coords['y1'] = event.x, event.y
-            rect_id = canvas.create_rectangle(0, 0, 1, 1, outline='red', width=2)
-
-        def on_drag(event):
-            rect_coords['x2'], rect_coords['y2'] = event.x, event.y
-            canvas.coords(rect_id, rect_coords['x1'], rect_coords['y1'], rect_coords['x2'], rect_coords['y2'])
-
-        canvas.bind("<ButtonPress-1>", on_press)
-        canvas.bind("<B1-Motion>", on_drag)
-
-        console.print("[bold cyan]Instructions: Click and drag to draw a cropping rectangle. Close the window when done.[/bold cyan]")
-        root.lift()
-        root.after_idle(root.attributes, '-topmost', False)
-
-        root.mainloop()
-
-        crop_w = abs(rect_coords['x2'] - rect_coords['x1'])
-        crop_h = abs(rect_coords['y2'] - rect_coords['y1'])
-        crop_x = min(rect_coords['x1'], rect_coords['x2'])
-        crop_y = min(rect_coords['y1'], rect_coords['y2'])
-
-        if crop_w < 2 or crop_h < 2:
-            console.print("[bold yellow]Cropping cancelled as no valid area was selected.[/bold yellow]")
+        if roi is None:
+            console.print("[bold yellow]Cropping cancelled - no valid area selected.[/bold yellow]")
+            press_continue()
             return
 
+        crop_x, crop_y, crop_w, crop_h = roi
         console.print(f"Selected crop area: [bold]width={crop_w} height={crop_h} at (x={crop_x}, y={crop_y})[/bold]")
 
         output_file = f"{Path(file_path).stem}_cropped{Path(file_path).suffix}"
@@ -133,9 +153,9 @@ def crop_video(file_path):
 
 
 def crop_image(file_path):
-    if not tk:
-        console.print("[bold red]Cannot perform visual cropping: tkinter & Pillow are not installed.[/bold red]")
-        console.print("[dim]Install them with: pip install tk Pillow[/dim]")
+    if not CV2_AVAILABLE:
+        console.print("[bold red]Cannot perform visual cropping: OpenCV is not installed.[/bold red]")
+        console.print("[dim]Install with: pip install opencv-python[/dim]")
         press_continue()
         return
 
@@ -144,52 +164,15 @@ def crop_image(file_path):
         return
 
     try:
-        root = tk.Tk()
-        root.title("Crop Image - Drag to select area, close window to confirm")
-        root.attributes("-topmost", True)
+        # Use OpenCV for selection
+        roi = _select_roi_with_opencv(file_path, "Crop Image - Draw rectangle, ENTER to confirm, C to cancel")
 
-        img = Image.open(file_path)
-
-        max_width = root.winfo_screenwidth() - 100
-        max_height = root.winfo_screenheight() - 100
-        img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
-
-        img_tk = ImageTk.PhotoImage(img, master=root)
-
-        canvas = tk.Canvas(root, width=img.width, height=img.height, cursor="cross")
-        canvas.pack()
-        canvas.create_image(0, 0, anchor=tk.NW, image=img_tk)
-
-        rect_coords = {"x1": 0, "y1": 0, "x2": 0, "y2": 0}
-        rect_id = None
-
-        def on_press(event):
-            nonlocal rect_id
-            rect_coords['x1'], rect_coords['y1'] = event.x, event.y
-            rect_id = canvas.create_rectangle(0, 0, 1, 1, outline='red', width=2)
-
-        def on_drag(event):
-            rect_coords['x2'], rect_coords['y2'] = event.x, event.y
-            canvas.coords(rect_id, rect_coords['x1'], rect_coords['y1'], rect_coords['x2'], rect_coords['y2'])
-
-        canvas.bind("<ButtonPress-1>", on_press)
-        canvas.bind("<B1-Motion>", on_drag)
-
-        console.print("[bold cyan]Instructions: Click and drag to draw a cropping rectangle. Close the window when done.[/bold cyan]")
-        root.lift()
-        root.after_idle(root.attributes, '-topmost', False)
-
-        root.mainloop()
-
-        crop_w = abs(rect_coords['x2'] - rect_coords['x1'])
-        crop_h = abs(rect_coords['y2'] - rect_coords['y1'])
-        crop_x = min(rect_coords['x1'], rect_coords['x2'])
-        crop_y = min(rect_coords['y1'], rect_coords['y2'])
-
-        if crop_w < 2 or crop_h < 2:
-            console.print("[bold yellow]Cropping cancelled as no valid area was selected.[/bold yellow]")
+        if roi is None:
+            console.print("[bold yellow]Cropping cancelled - no valid area selected.[/bold yellow]")
+            press_continue()
             return
 
+        crop_x, crop_y, crop_w, crop_h = roi
         console.print(f"Selected crop area: [bold]width={crop_w} height={crop_h} at (x={crop_x}, y={crop_y})[/bold]")
 
         output_file = f"{Path(file_path).stem}_cropped{Path(file_path).suffix}"

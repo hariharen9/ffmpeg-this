@@ -8,12 +8,6 @@ import questionary
 from prompt_toolkit.keys import Keys
 from rich.console import Console
 
-try:
-    import tkinter as tk
-    from tkinter import filedialog
-except ImportError:
-    tk = None
-
 console = Console()
 
 VIDEO_EXTENSIONS = [".mkv", ".mp4", ".avi", ".mov", ".webm", ".flv", ".wmv"]
@@ -153,28 +147,135 @@ def get_media_files(filter_type=None):
 
 
 def open_native_file_picker(file_type_label, filetypes):
-    """Open the native OS file picker dialog."""
-    if not tk:
-        console.print("[bold red]Native file picker not available (tkinter not installed).[/bold red]")
-        return None
+    """
+    Open the native OS file picker dialog using subprocess.
+    This runs in a separate process to avoid blocking the main event loop.
+    """
+    system = platform.system()
 
     try:
-        root = tk.Tk()
-        root.withdraw()
-        # Bring dialog to front on macOS
-        root.attributes('-topmost', True)
-        root.update()
+        if system == 'Darwin':  # macOS
+            # Use osascript to open native file picker
+            # Build file type filter for AppleScript
+            extensions = []
+            for _, pattern in filetypes:
+                if pattern != "*.*":
+                    exts = pattern.replace("*.", "").split()
+                    extensions.extend(exts)
 
-        file_path = filedialog.askopenfilename(
-            title=f"Select a {file_type_label} file",
-            filetypes=filetypes
-        )
+            if extensions:
+                type_list = ", ".join([f'"{ext}"' for ext in extensions[:10]])  # Limit to 10
+                script = f'''
+                    set theFile to choose file with prompt "Select a {file_type_label} file" of type {{{type_list}}}
+                    return POSIX path of theFile
+                '''
+            else:
+                script = f'''
+                    set theFile to choose file with prompt "Select a {file_type_label} file"
+                    return POSIX path of theFile
+                '''
 
-        root.destroy()
-        return file_path if file_path else None
-    except Exception as e:
-        console.print(f"[bold red]Error opening file picker: {e}[/bold red]")
+            result = subprocess.run(
+                ['osascript', '-e', script],
+                capture_output=True,
+                text=True,
+                timeout=300  # 5 minute timeout
+            )
+
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+            return None
+
+        elif system == 'Windows':
+            # Use PowerShell to open native file picker
+            extensions = []
+            for _, pattern in filetypes:
+                if pattern != "*.*":
+                    exts = pattern.replace("*", "").split()
+                    extensions.extend(exts)
+
+            if extensions:
+                filter_str = f"{file_type_label} files|*" + ";*".join(extensions[:15]) + "|All files|*.*"
+            else:
+                filter_str = "All files|*.*"
+
+            ps_script = f'''
+            Add-Type -AssemblyName System.Windows.Forms
+            $dialog = New-Object System.Windows.Forms.OpenFileDialog
+            $dialog.Title = "Select a {file_type_label} file"
+            $dialog.Filter = "{filter_str}"
+            $dialog.ShowDialog() | Out-Null
+            $dialog.FileName
+            '''
+
+            result = subprocess.run(
+                ['powershell', '-Command', ps_script],
+                capture_output=True,
+                text=True,
+                timeout=300
+            )
+
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+            return None
+
+        else:  # Linux
+            # Try zenity first (GNOME), then kdialog (KDE)
+            extensions = []
+            for _, pattern in filetypes:
+                if pattern != "*.*":
+                    exts = pattern.split()
+                    extensions.extend(exts)
+
+            # Try zenity
+            try:
+                cmd = ['zenity', '--file-selection', f'--title=Select a {file_type_label} file']
+                if extensions:
+                    for ext in extensions[:10]:
+                        cmd.extend(['--file-filter', ext])
+
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+                if result.returncode == 0 and result.stdout.strip():
+                    return result.stdout.strip()
+            except FileNotFoundError:
+                pass
+
+            # Try kdialog
+            try:
+                filter_str = " ".join(extensions[:10]) if extensions else "*"
+                result = subprocess.run(
+                    ['kdialog', '--getopenfilename', '.', filter_str],
+                    capture_output=True,
+                    text=True,
+                    timeout=300
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    return result.stdout.strip()
+            except FileNotFoundError:
+                pass
+
+            # Fallback: manual path input
+            console.print("[yellow]No GUI file picker available (zenity/kdialog not found).[/yellow]")
+            return _manual_path_input(file_type_label)
+
+    except subprocess.TimeoutExpired:
+        console.print("[yellow]File picker timed out.[/yellow]")
         return None
+    except Exception as e:
+        console.print(f"[yellow]File picker error: {e}[/yellow]")
+        return _manual_path_input(file_type_label)
+
+
+def _manual_path_input(file_type_label):
+    """Fallback: ask user to manually enter a file path."""
+    console.print("[dim]Enter the full path to the file, or press Enter to cancel.[/dim]")
+    path = questionary.text(f"Path to {file_type_label} file:").ask()
+
+    if path and os.path.isfile(path):
+        return os.path.abspath(path)
+    elif path:
+        console.print("[bold red]File not found.[/bold red]")
+    return None
 
 
 def select_media_file(filter_type=None):
@@ -197,7 +298,7 @@ def select_media_file(filter_type=None):
 
     if not media_files:
         console.print(f"[bold yellow]No {file_type_label} files found in this directory.[/bold yellow]")
-        if tk and questionary.confirm("Open file browser to select from another location?").ask():
+        if questionary.confirm("Open file browser to select from another location?").ask():
             return open_native_file_picker(file_type_label, filetypes)
         return None
 
