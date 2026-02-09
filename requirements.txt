@@ -8,12 +8,9 @@ opencv-python
 mediapipe
 rembg
 onnxruntime
-demucs
 dearpygui
 piper-tts
 deep-translator
 pathvalidate
 pydub
 requests
-realesrgan
-basicsr>=1.4.2
