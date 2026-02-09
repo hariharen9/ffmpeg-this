@@ -21,7 +21,7 @@ from peg_this.features.effects import add_watermark, merge_audio_video, video_fa
 from peg_this.features.frames import extract_frames, split_video
 from peg_this.features.inspect import inspect_file
 from peg_this.features.join import join_videos
-from peg_this.features.speed import change_speed, reverse_video, smooth_slow_motion
+from peg_this.features.speed import change_speed, reverse_video, smooth_slow_motion, change_fps
 from peg_this.features.subtitle import generate_subtitles, brainrot_captions
 from peg_this.features.dubbing import auto_dub
 from peg_this.features.trim import trim_video
@@ -187,6 +187,7 @@ def video_convert_menu():
             "Convert Format",
             "Compress Video",
             "Change Resolution",
+            "Change FPS",
             "Create GIF",
             questionary.Separator(),
             "← Back"
@@ -204,6 +205,7 @@ def video_convert_menu():
         "Convert Format": convert_file,
         "Compress Video": compress_video,
         "Change Resolution": change_resolution,
+        "Change FPS": change_fps,
         "Create GIF": create_gif_advanced,
     }
 
@@ -506,7 +508,7 @@ def main_menu():
             choices=[
                 questionary.Separator("─────── Video ───────"),
                 "✂️  Edit (Trim, Crop, Split, Join, Frames)",
-                "🔄  Convert (Format, Compress, Resolution, GIF)",
+                "🔄  Convert (Format, Compress, Resolution, FPS, GIF)",
                 "✨  Effects (Speed, Color, Denoise, Watermark)",
                 questionary.Separator("─────── Image ───────"),
                 "🖼️  Transform (Resize, Rotate, Flip, Crop)",
@@ -549,7 +551,7 @@ def main_menu():
         # --- VIDEO ---
         elif "Edit (Trim" in choice:
             video_edit_menu()
-        elif "Convert (Format, Compress, Resolution" in choice:
+        elif "Convert (Format, Compress, Resolution, FPS" in choice:
             video_convert_menu()
         elif "Effects (Speed" in choice:
             video_effects_menu()

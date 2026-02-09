@@ -26,9 +26,6 @@
     <a href="https://ffmpeg.org/">
         <img src="https://img.shields.io/badge/FFmpeg-Powered-007808?logo=ffmpeg&logoColor=white" alt="FFmpeg">
     </a>
-    <a href="https://github.com/openai/whisper">
-        <img src="https://img.shields.io/badge/AI-Whisper-743ec7?logo=openai&logoColor=white" alt="OpenAI Whisper">
-    </a>
 </p>
 
 <p align="center"><b>Your Editor within CLI</b></p>
@@ -50,6 +47,7 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | | Image Formats | Convert between JPG, PNG, WebP, BMP, TIFF with quality control |
 | | Compress Video | Target file size (e.g., 25MB for Discord) or CRF quality presets |
 | | Change Resolution | Scale to 4K, 1080p, 720p, 480p, or custom resolution |
+| | Change FPS | Convert frame rate (24/30/60/120 fps) with optional smooth interpolation |
 | **Subtitles** | AI Transcription | Generate subtitles using Whisper AI (7 model sizes available) |
 | | Brainrot Captions | TikTok/Reels style animated word-by-word captions (5 styles) |
 | | Sidecar Export | Save as `.srt`, `.vtt`, `.txt`, or `.lrc` files |
@@ -85,10 +83,15 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | | Music Separation | Isolate vocals and instruments using Demucs (2/4/6 stems) |
 | | Auto Blur Faces | AI face detection and automatic blurring (OpenCV/MediaPipe) |
 | | Brainrot Captions | TikTok-style word-by-word animated captions with Whisper |
-| **Image** | Resize | Scale images with aspect ratio preservation |
-| | Rotate | Rotate 90°, 180°, or 270° |
-| | Flip | Flip horizontally or vertically |
-| | Crop | Visual cropping with click-and-drag selection |
+| | Auto-Dubbing | AI voice translation to 24+ languages with Whisper + Piper TTS |
+| | Video Upscaling | AI super-resolution with Real-ESRGAN (2x/4x) + fast FFmpeg upscale |
+| **Image** | Transform | Resize, rotate, flip, crop with visual selection |
+| | Adjust Colors | Brightness, contrast, saturation, gamma with 8 presets |
+| | Blur / Sharpen | Gaussian blur or sharpen with strength control |
+| | Effects | Grayscale, sepia, invert (negative) |
+| | Add Border | Solid color borders with custom padding |
+| | Add Text | Text overlay with position, font, color, shadow/outline options |
+| | Compress | Optimize file size with quality control (JPG/PNG/WebP) |
 | **Other** | Create Slideshow | Create video from images with background music |
 | | Audio Visualizer | Generate stunning audio visualization videos (spectrum, waveform, CQT) |
 | | Metadata Editor | View, edit, clear, or copy video metadata |
@@ -105,6 +108,7 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | **Convert** | Any video | MP4, MKV, MOV, AVI, WebM | FFmpeg transcode | Yes (CRF quality) |
 | **Compress** | Any video | Same format | 2-pass encoding | Yes (target size/CRF) |
 | **Change Resolution** | Any video | Same format | Scale filter | Yes |
+| **Change FPS** | Any video | Same format | fps filter / minterpolate | Yes |
 | **Trim** | Any video | Same format | Stream copy | No (lossless) |
 | **Crop** | Any video | Same format | Visual selection + crop filter | Yes |
 | **Split** | Any video | Multiple segments | Stream copy or re-encode | Configurable |
@@ -126,6 +130,8 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | **To GIF** | Any video | Animated GIF | 2-pass palette optimization | Yes |
 | **Background Removal** | Image/Video | PNG/WebM/MP4 | rembg AI (U2-Net) | Yes |
 | **Brainrot Captions** | Any video | Same format | Whisper + ASS subtitles | Yes |
+| **Auto-Dubbing** | Any video | Same format | Whisper + Piper TTS | Yes |
+| **Video Upscaling** | Any video | Same format | Real-ESRGAN / FFmpeg scale | Yes |
 
 ### Audio Operations
 
@@ -171,6 +177,24 @@ A powerful and user-friendly Python CLI tool for converting, manipulating, and i
 | **Rotate** | 90° CW, 90° CCW, 180° | Lossless rotation |
 | **Flip** | Horizontal, Vertical | Mirror image |
 | **Crop** | Visual selection | Interactive GUI with preview |
+| **Adjust Colors** | Brightness, contrast, saturation, gamma | 8 presets + custom mode |
+| **Blur / Sharpen** | 4 blur levels, 3 sharpen levels | Gaussian blur, unsharp mask |
+| **Effects** | Grayscale, Sepia, Invert | One-click color effects |
+| **Add Border** | Custom size, 7 colors + hex | Equal or custom padding |
+| **Add Text** | 7 positions, custom font/color | Shadow, outline, background box styles |
+| **Compress** | Quality 40-90% | Auto format conversion |
+
+### AI Features
+
+| Feature | Description | Models/Options |
+|---------|-------------|----------------|
+| **Subtitles** | AI speech-to-text transcription | Whisper tiny to large-v3, 99+ languages |
+| **Brainrot Captions** | TikTok-style animated captions | 5 styles, word-by-word sync |
+| **Auto-Dubbing** | Translate and re-voice video | 24 languages, multiple voices per language |
+| **Music Separation** | Isolate vocals/instruments | Demucs 2/4/6 stems, MP3/FLAC/WAV output |
+| **Background Removal** | Remove background from image/video | Transparent, green screen, solid color |
+| **Face Blur** | Auto-detect and blur faces | MediaPipe AI or OpenCV Haar |
+| **Video Upscaling** | AI super-resolution | Real-ESRGAN 7 models, FFmpeg fast mode |
 
 ### Supported Formats
 
@@ -283,6 +307,61 @@ The subtitle feature uses [faster-whisper](https://github.com/SYSTRAN/faster-whi
 ### Supported Languages
 
 Using multilingual models (`small`, `medium`, `large-v3`), you can transcribe audio in 99+ languages including English, Spanish, French, German, Chinese, Japanese, Korean, Hindi, Arabic, and many more.
+
+## AI Auto-Dubbing
+
+Automatically translate and re-voice your videos into 24+ languages using AI.
+
+### How it works
+
+1. Select a video file
+2. Choose "AI Auto-Dubbing"
+3. Select target language (Spanish, French, German, Japanese, etc.)
+4. Choose a voice (multiple male/female options per language)
+5. Set original audio volume (mute, quiet, or mix)
+
+### Supported Languages
+
+| Language | Voices Available |
+|----------|------------------|
+| Spanish (ES/MX) | 3 voices |
+| French | 2 voices |
+| German | 2 voices |
+| Italian | 2 voices |
+| Portuguese (BR/PT) | 2 voices |
+| Japanese | 2 voices |
+| Chinese | 2 voices |
+| Korean | 1 voice |
+| Russian | 2 voices |
+| Arabic | 1 voice |
+| Hindi | 1 voice |
+| And 13 more... | Various |
+
+> **Note:** Uses Whisper for transcription, deep-translator for translation, and Piper TTS for voice synthesis. All processing runs locally.
+
+## AI Video Upscaling
+
+Enhance video resolution using AI super-resolution or fast FFmpeg scaling.
+
+### Modes
+
+| Mode | Speed | Quality | Use Case |
+|------|-------|---------|----------|
+| **Quick (FFmpeg)** | ⚡ Fastest | Good | Basic upscaling, large files |
+| **Fast AI** | 🚀 Fast | Great | General purpose, balanced |
+| **Quality AI** | 🐢 Slow | Best | Final renders, quality priority |
+| **Anime AI** | 🚀 Fast | Best for animation | Cartoons, anime content |
+
+### AI Models (Real-ESRGAN)
+
+| Model | Scale | Speed | Best For |
+|-------|-------|-------|----------|
+| `RealESRGAN_x2plus` | 2x | Fastest | 1080p → 4K |
+| `realesr-general-x4v3` | 4x | Fast | General content |
+| `RealESRGAN_x4plus` | 4x | Slow | Maximum quality |
+| `realesr-animevideov3` | 4x | Fast | Anime/cartoons |
+
+> **Hardware:** Supports NVIDIA CUDA, Apple Silicon (MPS), and CPU. GPU recommended for reasonable speeds.
 
 ## Star History
 

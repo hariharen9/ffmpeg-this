@@ -265,6 +265,135 @@ def smooth_slow_motion(file_path):
     press_continue()
 
 
+def change_fps(file_path):
+    """Change video frame rate with optional smooth interpolation."""
+    if not validate_input_file(file_path):
+        press_continue()
+        return
+
+    # Get current FPS
+    try:
+        probe = ffmpeg.probe(file_path, select_streams='v')
+        r_frame_rate = probe['streams'][0]['r_frame_rate']
+        num, den = map(int, r_frame_rate.split('/'))
+        current_fps = num / den if den != 0 else 30
+        console.print(f"[dim]Current FPS: {current_fps:.2f}[/dim]")
+    except Exception:
+        current_fps = 30
+        console.print("[dim]Could not detect current FPS[/dim]")
+
+    # FPS presets with descriptions
+    fps_choice = questionary.select(
+        "Select target frame rate:",
+        choices=[
+            "24 fps (Cinema/Film)",
+            "25 fps (PAL/Europe TV)",
+            "30 fps (NTSC/Web Standard)",
+            "48 fps (High Frame Rate Cinema)",
+            "60 fps (Smooth/Gaming)",
+            "120 fps (Super Smooth)",
+            "Custom",
+            "← Back"
+        ]
+    ).ask()
+
+    if fps_choice == "← Back" or fps_choice is None:
+        return
+
+    if fps_choice == "Custom":
+        custom_fps = questionary.text(
+            "Enter target FPS:",
+            default="60"
+        ).ask()
+        if not custom_fps:
+            return
+        try:
+            target_fps = float(custom_fps)
+            if target_fps <= 0 or target_fps > 240:
+                console.print("[bold red]FPS must be between 1 and 240.[/bold red]")
+                press_continue()
+                return
+        except ValueError:
+            console.print("[bold red]Invalid FPS value.[/bold red]")
+            press_continue()
+            return
+    else:
+        target_fps = int(fps_choice.split(" ")[0])
+
+    # Check if upscaling FPS (needs interpolation for smooth result)
+    use_interpolation = False
+    if target_fps > current_fps:
+        console.print(f"\n[yellow]Target FPS ({target_fps}) is higher than source ({current_fps:.0f}).[/yellow]")
+        console.print("[dim]Without interpolation, frames will be duplicated (choppy).[/dim]")
+        console.print("[dim]With optical flow, new frames are generated (smooth but slow).[/dim]")
+
+        interp_choice = questionary.select(
+            "How should missing frames be handled?",
+            choices=[
+                "Duplicate frames (Fast, may look choppy)",
+                "Optical Flow interpolation (Slow, smooth result)",
+                "← Back"
+            ]
+        ).ask()
+
+        if interp_choice == "← Back" or interp_choice is None:
+            return
+
+        use_interpolation = "Optical Flow" in interp_choice
+
+        if use_interpolation:
+            console.print("\n[bold yellow]⚠️  Optical Flow is computationally expensive![/bold yellow]")
+            console.print("[dim]Render time can be 10-50x the video duration.[/dim]")
+            if not questionary.confirm("Continue?", default=True).ask():
+                return
+
+    # Output file
+    suffix = f"_{int(target_fps)}fps"
+    if use_interpolation:
+        suffix += "_smooth"
+    output_file = f"{Path(file_path).stem}{suffix}{Path(file_path).suffix}"
+    action_result, final_output = check_output_file(output_file, "Video file")
+
+    if action_result == 'cancel':
+        console.print("[yellow]Operation cancelled.[/yellow]")
+        press_continue()
+        return
+
+    input_stream = ffmpeg.input(file_path)
+
+    if use_interpolation:
+        # Use minterpolate for smooth frame generation
+        minterpolate_kwargs = {
+            'fps': target_fps,
+            'mi_mode': 'mci',
+            'mc_mode': 'aobmc',
+            'me_mode': 'bidir',
+            'vsbmc': 1
+        }
+        video = input_stream.video.filter('minterpolate', **minterpolate_kwargs)
+    else:
+        # Simple FPS change (duplicate or drop frames)
+        video = input_stream.video.filter('fps', fps=target_fps)
+
+    # Keep audio unchanged
+    if has_audio_stream(file_path):
+        audio = input_stream.audio
+        stream = ffmpeg.output(video, audio, final_output, **{'c:v': 'libx264', 'crf': 23, 'c:a': 'aac'})
+    else:
+        stream = ffmpeg.output(video, final_output, **{'c:v': 'libx264', 'crf': 23})
+
+    if action_result == 'overwrite':
+        stream = stream.overwrite_output()
+
+    method = "optical flow" if use_interpolation else "frame adjustment"
+    if run_command(stream, f"Changing FPS to {target_fps} ({method})...", show_progress=True):
+        console.print(f"[bold green]Saved to: {final_output}[/bold green]")
+    else:
+        console.print("[bold red]FPS change failed.[/bold red]")
+
+    press_continue()
+
+
 def reverse_video(file_path):
     if not validate_input_file(file_path):
         press_continue()
