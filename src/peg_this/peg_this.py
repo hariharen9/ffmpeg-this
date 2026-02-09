@@ -42,7 +42,7 @@ logging.basicConfig(
 )
 
 console = Console()
-VERSION = "5.0.0"
+VERSION = "5.0.1"
 
 LOGO = """[bold magenta]
    ██████╗ ███████╗ ██████╗       ████████╗██╗  ██╗██╗███████╗

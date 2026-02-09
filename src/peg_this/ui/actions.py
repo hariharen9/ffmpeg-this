@@ -852,7 +852,8 @@ def _do_music_separation(state, params):
     try:
         import demucs.separate
     except ImportError:
-        state.add_log("Error: 'demucs' not installed. pip install demucs")
+        state.add_log("Error: Demucs not installed.")
+        state.add_log("Install with: pip install peg_this[demucs]")
         return
 
     stems = params.get('stems', '2')[0] # Get first char '2', '4', '6'

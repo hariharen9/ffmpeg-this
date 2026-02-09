@@ -28,8 +28,8 @@ def separate_stems(file_path):
     # Check for Demucs installation
     if not check_demucs_installed():
         console.print("[bold red]Error: Demucs is not installed.[/bold red]")
-        console.print("[yellow]Please install it using: pip install demucs[/yellow]")
-        console.print("[dim]Note: This requires PyTorch and may download large models (~1GB+).[/dim]")
+        console.print("[yellow]Install with: pip install peg_this[demucs][/yellow]")
+        console.print("[dim]Note: This is ~1.5GB as it includes PyTorch.[/dim]")
         press_continue()
         return
 

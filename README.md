@@ -236,10 +236,22 @@ For other systems, please see the official download page: **[ffmpeg.org/download
 There are three ways to use `peg_this`:
 
 ### 1. Pip Install (Recommended)
-This is the easiest way to get started. This will install the tool and all its dependencies.
+This is the easiest way to get started. This will install the core tool with all features.
 
 ```bash
 pip install peg_this
+```
+
+**Optional Heavy AI Features** (not included by default to keep install fast):
+```bash
+# Music Stem Separation (Demucs) - ~1.5GB, requires PyTorch
+pip install peg_this[demucs]
+
+# AI Video Upscaling (Real-ESRGAN) - ~1.5GB, requires PyTorch
+pip install peg_this[upscale]
+
+# Install both
+pip install peg_this[all-ai]
 ```
 
 Once installed, you can run the tool from your terminal:

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "peg_this"
-version = "5.0.0"
+version = "5.0.1"
 authors = [
   { name="Hariharen S S", email="thisishariharen@gmail.com" },
 ]
@@ -36,18 +36,20 @@ dependencies = [
     "mediapipe>=0.10.0",
     "rembg>=2.0.50",
     "onnxruntime>=1.16.0",
-    "demucs>=4.0.0",
     "dearpygui>=2.0.0",
     "piper-tts>=1.2.0",
     "deep-translator>=1.11.0",
     "pathvalidate>=3.2.0",
     "pydub>=0.25.1",
-    "requests>=2.0.0",
-    "realesrgan>=0.3.0",
-    "basicsr>=1.4.2"
+    "requests>=2.0.0"
 ]
 
 [project.optional-dependencies]
+# Heavy AI features (~1.5GB each, includes PyTorch)
+demucs = ["demucs>=4.0.0"]
+upscale = ["realesrgan>=0.3.0", "basicsr>=1.4.2"]
+all-ai = ["demucs>=4.0.0", "realesrgan>=0.3.0", "basicsr>=1.4.2"]
+
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",

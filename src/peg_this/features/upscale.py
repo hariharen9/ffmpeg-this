@@ -414,9 +414,8 @@ def upscale_video(file_path, scale_factor=None, model_type=None, output_path=Non
     except ImportError as e:
         console.print(f"[bold red]Missing AI dependencies: {e}[/bold red]")
         console.print("\n[yellow]Install with:[/yellow]")
-        console.print("  pip install realesrgan basicsr torch torchvision")
-        console.print("\n[dim]For NVIDIA GPU (CUDA 12.1):[/dim]")
-        console.print("  pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121")
+        console.print("  pip install peg_this[upscale]")
+        console.print("\n[dim]This is ~1.5GB as it includes PyTorch.[/dim]")
         press_continue()
         return
 
