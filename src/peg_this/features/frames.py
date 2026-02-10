@@ -111,7 +111,9 @@ def extract_frames(file_path):
                 probe = ffmpeg.probe(file_path)
                 video_stream = next((s for s in probe['streams'] if s['codec_type'] == 'video'), None)
                 if video_stream:
-                    fps = eval(video_stream.get('r_frame_rate', '30/1'))
+                    r_frame_rate = video_stream.get('r_frame_rate', '30/1')
+                    num, den = map(int, r_frame_rate.split('/'))
+                    fps = num / den if den != 0 else 30
                     estimated_frames = int(duration * fps)
                     console.print(f"[yellow]This will extract approximately {estimated_frames} frames.[/yellow]")
                     console.print(f"[dim]Estimated disk space: ~{estimated_frames * 0.5:.0f} MB[/dim]")
