@@ -5,7 +5,7 @@ import ffmpeg
 import questionary
 from rich.console import Console
 
-from peg_this.utils.ffmpeg_utils import run_command
+from peg_this.utils.ffmpeg_utils import run_command, get_global_encoding_args
 from peg_this.utils.ui_utils import get_media_files
 from peg_this.utils.validation import (
     check_output_file, check_has_audio_stream, warn_reencode, press_continue
@@ -110,17 +110,21 @@ def join_videos():
                 a = ffmpeg.input('anullsrc', f='lavfi', t=1).filter('aresample', sample_rate=target_sample_rate)
             processed_streams.append(a)
 
+    encoding_args = get_global_encoding_args(crf=23)
+
     if has_audio:
         joined = ffmpeg.concat(*processed_streams, v=1, a=1).node
+        encoding_args['c:a'] = 'aac'
+        encoding_args['b:a'] = '192k'
         output_stream = ffmpeg.output(
             joined[0], joined[1], final_output,
-            **{'c:v': 'libx264', 'crf': 23, 'c:a': 'aac', 'b:a': '192k'}
+            **encoding_args
         )
     else:
         joined = ffmpeg.concat(*processed_streams, v=1, a=0).node
         output_stream = ffmpeg.output(
             joined[0], final_output,
-            **{'c:v': 'libx264', 'crf': 23}
+            **encoding_args
         )
 
     if action_result == 'overwrite':

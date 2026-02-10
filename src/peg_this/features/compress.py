@@ -147,27 +147,16 @@ def compress_video(file_path):
             return
 
         # CPU 2-pass implementation (original logic)
-        stream = ffmpeg.output(
-            stream, final_output,
-            **{
-                'c:v': 'libx264',
-                'b:v': f'{video_bitrate_k}k',
-                'c:a': 'aac',
-                'b:a': '128k',
-                'preset': 'slow',
-                'pass': 1,
-                'f': 'null'
-            }
-        )
+        cpu_preset = base_args.get('preset', 'slow')
 
         # Two-pass encoding for better quality at target size
         console.print("[cyan]Pass 1 of 2...[/cyan]")
         first_pass = ffmpeg.input(file_path).output(
             '/dev/null' if os.name != 'nt' else 'NUL',
             **{
-                'c:v': 'libx264',
+                'c:v': codec,
                 'b:v': f'{video_bitrate_k}k',
-                'preset': 'slow',
+                'preset': cpu_preset,
                 'pass': 1,
                 'an': None,
                 'f': 'null'
@@ -183,11 +172,11 @@ def compress_video(file_path):
         second_pass = ffmpeg.input(file_path).output(
             final_output,
             **{
-                'c:v': 'libx264',
+                'c:v': codec,
                 'b:v': f'{video_bitrate_k}k',
                 'c:a': 'aac',
                 'b:a': '128k',
-                'preset': 'slow',
+                'preset': cpu_preset,
                 'pass': 2
             }
         )

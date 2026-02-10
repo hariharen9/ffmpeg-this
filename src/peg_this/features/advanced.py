@@ -9,7 +9,8 @@ import questionary
 from rich.console import Console
 from rich.table import Table
 
-from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream
+from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream, get_global_encoding_args
+from peg_this.settings import Settings
 from peg_this.utils.validation import (
     validate_input_file, check_output_file, press_continue,
     get_video_duration, format_duration, check_has_video_stream
@@ -161,7 +162,9 @@ def create_slideshow():
         if scale_filter:
             cmd.extend(['-vf', scale_filter])
 
-        cmd.extend(['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-r', '30'])
+        slideshow_encoding_args = Settings().get_encoder_list_args(quality="medium", crf=23)
+        cmd.extend(slideshow_encoding_args)
+        cmd.extend(['-pix_fmt', 'yuv420p', '-r', '30'])
 
         if music_path:
             cmd.extend(['-i', music_path, '-c:a', 'aac', '-shortest'])
@@ -457,11 +460,13 @@ def stabilize_video(file_path):
 
         vidstab_filter = f"vidstabtransform=input={transforms_file}:smoothing={smoothing}:zoom={zoom}:optzoom={optzoom}"
 
+        stabilize_encoding_args = Settings().get_encoder_list_args(quality="high", crf=18)
+
         pass2_cmd = [
             'ffmpeg', '-y', '-i', file_path,
-            '-vf', vidstab_filter,
-            '-c:v', 'libx264', '-preset', 'medium', '-crf', '18'
+            '-vf', vidstab_filter
         ]
+        pass2_cmd.extend(stabilize_encoding_args)
 
         if has_audio_stream(file_path):
             pass2_cmd.extend(['-c:a', 'copy'])

@@ -20,7 +20,8 @@ import ffmpeg
 
 from peg_this.ui.state import UIState
 from peg_this.ui.preview import player
-from peg_this.utils.ffmpeg_utils import run_command
+from peg_this.utils.ffmpeg_utils import run_command, get_global_encoding_args
+from peg_this.settings import Settings
 from peg_this.utils.validation import validate_time_input, get_video_duration
 from peg_this.features.dubbing import LANGUAGES
 from peg_this.features.subtitle import extract_audio_for_whisper
@@ -319,7 +320,8 @@ def _do_trim(state, params):
     state.add_log(f"Trimming... Output: {output_path}")
 
     input_stream = ffmpeg.input(state.input_file)
-    kwargs = {'c:v': 'libx264', 'crf': 23, 'c:a': 'aac'}
+    kwargs = get_global_encoding_args(crf=23)
+    kwargs['c:a'] = 'aac'
     if end_sec:
         stream = ffmpeg.output(input_stream, output_path, ss=start_sec, to=end_sec, **kwargs).overwrite_output()
     else:
@@ -347,7 +349,8 @@ def _do_compress(state, params):
     if not confirm_overwrite(state, output_path): return
     state.add_log(f"Compressing (CRF {crf}, Preset {preset})...")
     
-    stream = ffmpeg.input(state.input_file).output(output_path, vcodec='libx264', crf=crf, preset=preset, acodec='aac').overwrite_output()
+    compress_args = get_global_encoding_args(quality="medium", crf=crf)
+    stream = ffmpeg.input(state.input_file).output(output_path, acodec='aac', **compress_args).overwrite_output()
     run_command(stream, description="Compressing...", show_progress=True)
 
 def _do_gif(state, params):
@@ -965,18 +968,19 @@ def _do_remove_background(state, params):
         state.add_log("Merging audio...")
         import subprocess
         # Using subprocess for reliable mapping of optional audio
+        merge_encoding_args = Settings().get_encoder_list_args(quality="medium", crf=23)
         merge_cmd = [
             'ffmpeg', '-y',
             '-i', temp_out,
             '-i', state.input_file,
             '-map', '0:v:0',
             '-map', '1:a?',
-            '-c:v', 'libx264',
+        ] + merge_encoding_args + [
             '-c:a', 'copy',
             '-shortest',
             output_path
         ]
-        
+
         proc = subprocess.run(merge_cmd, capture_output=True, text=True)
         if proc.returncode != 0:
             state.add_log(f"Merge failed: {proc.stderr}")
@@ -1077,13 +1081,14 @@ def _do_blur_faces(state, params):
         
         state.add_log("Merging audio...")
         import subprocess
+        merge_encoding_args2 = Settings().get_encoder_list_args(quality="medium", crf=23)
         merge_cmd = [
             'ffmpeg', '-y',
             '-i', temp_out,
             '-i', state.input_file,
             '-map', '0:v:0',
             '-map', '1:a?',
-            '-c:v', 'libx264',
+        ] + merge_encoding_args2 + [
             '-c:a', 'copy',
             '-shortest',
             output_path
@@ -1177,11 +1182,12 @@ def _do_subtitles(state, params):
                 
                 # We use a direct subprocess for the burn-in to have better control
                 state.add_log("Starting FFmpeg burn-in process...")
+                sub_encoding_args = Settings().get_encoder_list_args(quality="medium", crf=23)
                 cmd = [
                     'ffmpeg', '-y',
                     '-i', state.input_file,
                     '-vf', f"subtitles='{safe_srt_path}'",
-                    '-c:v', 'libx264', '-preset', 'medium', '-crf', '23',
+                ] + sub_encoding_args + [
                     '-c:a', 'aac', '-b:a', '128k',
                     output_path
                 ]
@@ -1394,11 +1400,12 @@ Format: Layer, Start, End, Style, Text
         state.add_log("Burning captions...")
         safe_ass_path = ass_path.replace("'", "'\\\\''").replace(":", "\\:")
         
+        brainrot_enc_args = Settings().get_encoder_list_args(quality="medium", crf=23)
         cmd = [
             'ffmpeg', '-y',
             '-i', state.input_file,
             '-vf', f"ass='{safe_ass_path}'",
-            '-c:v', 'libx264', '-preset', 'medium', '-crf', '23',
+        ] + brainrot_enc_args + [
             '-c:a', 'aac', '-b:a', '128k',
             output_path
         ]
@@ -1443,7 +1450,10 @@ def _do_visualizer(state, params):
     else:
         filter_complex = f"[0:a]avectorscope=s={w}x{h}[v]"
         
-    cmd = ['ffmpeg', '-y', '-i', state.input_file, '-filter_complex', filter_complex, '-map', '[v]', '-map', '0:a', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', output_path]
+    viz_encoding_args = Settings().get_encoder_list_args(quality="medium", crf=23)
+    cmd = ['ffmpeg', '-y', '-i', state.input_file, '-filter_complex', filter_complex, '-map', '[v]', '-map', '0:a']
+    cmd.extend(viz_encoding_args)
+    cmd.extend(['-pix_fmt', 'yuv420p', '-c:a', 'aac', output_path])
     
     import subprocess
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -1482,7 +1492,10 @@ def _do_slideshow(state, params):
             f.write(f"file '{images[-1].replace("'", "'\\''")}'\n")
 
         state.add_log(f"Creating slideshow from {len(images)} images...")
-        cmd = ['ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', concat_file, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', output_path]
+        slideshow_enc_args = Settings().get_encoder_list_args(quality="medium", crf=23)
+        cmd = ['ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', concat_file]
+        cmd.extend(slideshow_enc_args)
+        cmd.extend(['-pix_fmt', 'yuv420p', output_path])
 
         import subprocess
         subprocess.run(cmd)

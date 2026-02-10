@@ -5,7 +5,7 @@ import ffmpeg
 import questionary
 from rich.console import Console
 
-from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream
+from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream, get_global_encoding_args
 from peg_this.utils.validation import (
     validate_input_file, check_output_file, get_video_duration,
     format_duration, press_continue
@@ -104,9 +104,9 @@ def change_speed(file_path):
         else:
             audio = audio.filter('atempo', speed_factor)
 
-        stream = ffmpeg.output(video, audio, final_output, **{'c:v': 'libx264', 'crf': 23})
+        stream = ffmpeg.output(video, audio, final_output, **get_global_encoding_args(crf=23))
     else:
-        stream = ffmpeg.output(video, final_output, **{'c:v': 'libx264', 'crf': 23})
+        stream = ffmpeg.output(video, final_output, **get_global_encoding_args(crf=23))
 
     if action_result == 'overwrite':
         stream = stream.overwrite_output()
@@ -250,9 +250,9 @@ def smooth_slow_motion(file_path):
         else:
             audio = audio.filter('atempo', speed_factor)
 
-        stream = ffmpeg.output(video, audio, final_output, **{'c:v': 'libx264', 'crf': 23})
+        stream = ffmpeg.output(video, audio, final_output, **get_global_encoding_args(crf=23))
     else:
-        stream = ffmpeg.output(video, final_output, **{'c:v': 'libx264', 'crf': 23})
+        stream = ffmpeg.output(video, final_output, **get_global_encoding_args(crf=23))
 
     if action_result == 'overwrite':
         stream = stream.overwrite_output()
@@ -378,9 +378,11 @@ def change_fps(file_path):
     # Keep audio unchanged
     if has_audio_stream(file_path):
         audio = input_stream.audio
-        stream = ffmpeg.output(video, audio, final_output, **{'c:v': 'libx264', 'crf': 23, 'c:a': 'aac'})
+        fps_encoding_args = get_global_encoding_args(crf=23)
+        fps_encoding_args['c:a'] = 'aac'
+        stream = ffmpeg.output(video, audio, final_output, **fps_encoding_args)
     else:
-        stream = ffmpeg.output(video, final_output, **{'c:v': 'libx264', 'crf': 23})
+        stream = ffmpeg.output(video, final_output, **get_global_encoding_args(crf=23))
 
     if action_result == 'overwrite':
         stream = stream.overwrite_output()
@@ -419,9 +421,9 @@ def reverse_video(file_path):
 
     if has_audio_stream(file_path):
         audio = input_stream.audio.filter('areverse')
-        stream = ffmpeg.output(video, audio, final_output, **{'c:v': 'libx264', 'crf': 23})
+        stream = ffmpeg.output(video, audio, final_output, **get_global_encoding_args(crf=23))
     else:
-        stream = ffmpeg.output(video, final_output, **{'c:v': 'libx264', 'crf': 23})
+        stream = ffmpeg.output(video, final_output, **get_global_encoding_args(crf=23))
 
     if action_result == 'overwrite':
         stream = stream.overwrite_output()

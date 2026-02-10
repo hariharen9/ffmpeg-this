@@ -7,7 +7,8 @@ import questionary
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
 
-from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream
+from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream, get_global_encoding_args
+from peg_this.settings import Settings
 from peg_this.utils.validation import (
     validate_input_file, check_output_file, check_disk_space,
     get_video_duration, format_duration, press_continue
@@ -375,9 +376,11 @@ def generate_subtitles(file_path):
                 stream = ffmpeg.input(file_path)
                 video = stream.video.filter('subtitles', sub_temp_path)
                 audio = stream.audio
+                burn_encoding_args = get_global_encoding_args(quality="medium", crf=int(crf))
+                burn_encoding_args['acodec'] = 'copy'
                 out = ffmpeg.output(
                     video, audio, str(final_output_path),
-                    vcodec='libx264', acodec='copy', crf=crf, preset='fast'
+                    **burn_encoding_args
                 )
                 if action_result == 'overwrite':
                     out = out.overwrite_output()
@@ -729,12 +732,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if action_result == 'overwrite':
             cmd.append('-y')
 
+        brainrot_encoding_args = Settings().get_encoder_list_args(quality="high", crf=18)
+
         cmd.extend([
             '-i', file_path,
-            '-vf', f"ass='{ass_path_escaped}'",
-            '-c:v', 'libx264',
-            '-preset', 'medium',
-            '-crf', '18',
+            '-vf', f"ass='{ass_path_escaped}'"
+        ])
+        cmd.extend(brainrot_encoding_args)
+        cmd.extend([
             '-c:a', 'copy',
             '-pix_fmt', 'yuv420p',
             final_output
