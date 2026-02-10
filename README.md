@@ -2,378 +2,333 @@
 
 <p align="center">
     <a href="https://pypi.org/project/peg-this/">
-        <img src="https://img.shields.io/pypi/v/peg_this?color=blue&label=version" alt="PyPI Version">
+        <img src="https://img.shields.io/pypi/v/peg_this?color=blue&label=version" alt="Version">
     </a>
     <a href="https://pepy.tech/project/peg-this">
         <img src="https://static.pepy.tech/badge/peg-this" alt="Downloads">
     </a>
     <a href="https://github.com/hariharen9/ffmpeg-this/stargazers">
-        <img src="https://img.shields.io/github/stars/hariharen9/ffmpeg-this?color=yellow" alt="GitHub Stars">
-    </a>
-    <a href="https://github.com/hariharen9/ffmpeg-this/network/members">
-        <img src="https://img.shields.io/github/forks/hariharen9/ffmpeg-this?color=lightgrey" alt="GitHub Forks">
-    </a>
-    <a href="https://github.com/hariharen9/ffmpeg-this/issues">
-        <img src="https://img.shields.io/github/issues/hariharen9/ffmpeg-this?color=red" alt="GitHub Issues">
+        <img src="https://img.shields.io/github/stars/hariharen9/ffmpeg-this?color=yellow" alt="Stars">
     </a>
     <a href="https://github.com/hariharen9/ffmpeg-this/blob/main/LICENSE">
         <img src="https://img.shields.io/github/license/hariharen9/ffmpeg-this" alt="License">
     </a>
-    <br>
     <a href="https://github.com/hariharen9/ffmpeg-this">
-        <img src="https://img.shields.io/badge/platform-win%20%7C%20macos%20%7C%20linux-blueviolet" alt="Supported Platforms">
-    </a>
-    <a href="https://ffmpeg.org/">
-        <img src="https://img.shields.io/badge/FFmpeg-Powered-007808?logo=ffmpeg&logoColor=white" alt="FFmpeg">
+        <img src="https://img.shields.io/badge/platform-win%20%7C%20macos%20%7C%20linux-blueviolet" alt="Platforms">
     </a>
 </p>
 
-<p align="center"><b>Your Editor within CLI</b></p>
-
-A powerful and user-friendly Python CLI tool for converting, manipulating, and inspecting media files using the power of FFmpeg. This tool provides a simple command-line menu to perform common audio and video tasks without needing to memorize complex FFmpeg commands.
+<p align="center">
+    <b>FFmpeg, but you'll actually use it.</b><br>
+    <sub>Professional video editing, AI tools, and downloads — all in an interactive CLI menu. No commands to memorize.</sub>
+</p>
 
 <p align="center">
     <img src="/assets/peg.gif" width="720">
 </p>
 
-## Features at a Glance
+---
 
-| Category | Feature | Description |
-|----------|---------|-------------|
-| **Inspect** | Media Properties | View detailed codec, resolution, frame rate, bitrate, and stream information |
-| **Convert** | Video Formats | Convert to MP4, MKV, MOV, AVI, WebM with quality presets (CRF 18/23/28) |
-| | Audio Formats | Convert to MP3 (128k-320k bitrate), FLAC, WAV |
-| | GIF Creation | Convert video clips to animated GIFs with optimized palette |
-| | Image Formats | Convert between JPG, PNG, WebP, BMP, TIFF with quality control |
-| | Compress Video | Target file size (e.g., 25MB for Discord) or CRF quality presets |
-| | Change Resolution | Scale to 4K, 1080p, 720p, 480p, or custom resolution |
-| | Change FPS | Convert frame rate (24/30/60/120 fps) with optional smooth interpolation |
-| **Subtitles** | AI Transcription | Generate subtitles using Whisper AI (7 model sizes available) |
-| | Brainrot Captions | TikTok/Reels style animated word-by-word captions (5 styles) |
-| | Sidecar Export | Save as `.srt`, `.vtt`, `.txt`, or `.lrc` files |
-| | Soft Subtitles | Embed toggleable subtitle track into video |
-| | Hard Subtitles | Burn permanent subtitles directly into video |
-| | Multi-language | Support for 99+ languages with auto-detection |
-| **Edit** | Trim/Cut | Extract video segments by start/end time (lossless, no re-encoding) |
-| | Visual Crop | Interactive GUI to select crop area on video/image |
-| | Split Video | Divide video into equal parts or by duration |
-| | Join/Concatenate | Merge multiple videos with automatic resolution matching |
-| **Audio** | Extract Audio | Rip audio track to MP3, FLAC, or WAV |
-| | Separate Music Stems | AI separation of Vocals, Drums, Bass, Other (Demucs) |
-| | Remove Audio | Create silent version of video (keeps video intact) |
-| | Merge Audio | Replace or mix audio track with video |
-| | Adjust Volume | Increase/decrease volume (presets, dB, multiplier) |
-| | Audio Fade In/Out | Fade audio at start/end (6 curve types) |
-| | Normalize Audio | EBU R128, Peak, RMS, or Dynamic normalization |
-| **Effects** | Smooth Slow Motion | Optical Flow (AI) for buttery smooth slow motion |
-| | Change Speed | Adjust playback speed (0.25x to 4x) with audio pitch preservation |
-| | Reverse Video | Play video backwards (includes audio) |
-| | Rotate Video | Rotate 90° clockwise, counter-clockwise, or 180° |
-| | Flip Video | Flip horizontally (mirror) or vertically |
-| | Video Fade In/Out | Fade to/from black or white at start/end |
-| | Loop Video | Repeat video N times or to target duration |
-| | Color Correction | Brightness, contrast, saturation with presets |
-| | Denoise Video | Reduce grain/noise (hqdn3d fast / nlmeans quality) |
-| | Blur/Pixelate Region | Visual selection to blur or pixelate areas |
-| | Add Watermark | Overlay image or text with custom positioning |
-| | Picture-in-Picture | Overlay smaller video on main video |
-| | Video Stabilization | Reduce camera shake (Light/Medium/Heavy) |
-| | Extract Frames | Export single frame, every N seconds, or all frames as images |
-| **AI** | Background Removal | AI-powered background removal for images and videos (rembg) |
-| | Music Separation | Isolate vocals and instruments using Demucs (2/4/6 stems) |
-| | Auto Blur Faces | AI face detection and automatic blurring (OpenCV/MediaPipe) |
-| | Brainrot Captions | TikTok-style word-by-word animated captions with Whisper |
-| | Auto-Dubbing | AI voice translation to 24+ languages with Whisper + Piper TTS |
-| | Video Upscaling | AI super-resolution with Real-ESRGAN (2x/4x) + fast FFmpeg upscale |
-| **Image** | Transform | Resize, rotate, flip, crop with visual selection |
-| | Adjust Colors | Brightness, contrast, saturation, gamma with 8 presets |
-| | Blur / Sharpen | Gaussian blur or sharpen with strength control |
-| | Effects | Grayscale, sepia, invert (negative) |
-| | Add Border | Solid color borders with custom padding |
-| | Add Text | Text overlay with position, font, color, shadow/outline options |
-| | Compress | Optimize file size with quality control (JPG/PNG/WebP) |
-| **Other** | Create Slideshow | Create video from images with background music |
-| | Audio Visualizer | Generate stunning audio visualization videos (spectrum, waveform, CQT) |
-| | Metadata Editor | View, edit, clear, or copy video metadata |
-| | Create GIF (Advanced) | Custom FPS, size, quality, loop options |
-| **Batch** | Batch Convert | Convert all media files in directory at once |
+## Why This Exists
 
-<details>
-<summary><h2>Detailed Feature Breakdown</h2></summary>
-
-### Video Operations
-
-| Operation | Input | Output | Method | Re-encoding |
-|-----------|-------|--------|--------|-------------|
-| **Convert** | Any video | MP4, MKV, MOV, AVI, WebM | FFmpeg transcode | Yes (CRF quality) |
-| **Compress** | Any video | Same format | 2-pass encoding | Yes (target size/CRF) |
-| **Change Resolution** | Any video | Same format | Scale filter | Yes |
-| **Change FPS** | Any video | Same format | fps filter / minterpolate | Yes |
-| **Trim** | Any video | Same format | Stream copy | No (lossless) |
-| **Crop** | Any video | Same format | Visual selection + crop filter | Yes |
-| **Split** | Any video | Multiple segments | Stream copy or re-encode | Configurable |
-| **Join** | Multiple videos | Single MP4 | Concat filter + normalize | Yes |
-| **Change Speed** | Any video | Same format | setpts + atempo filters | Yes |
-| **Reverse** | Any video | Same format | Reverse filter | Yes |
-| **Rotate** | Any video | Same format | transpose filter | Yes |
-| **Flip** | Any video | Same format | hflip/vflip filter | Yes |
-| **Video Fade** | Any video | Same format | fade filter | Yes |
-| **Loop Video** | Any video | Same format | stream_loop | No (stream copy) |
-| **Color Correction** | Any video | Same format | eq filter | Yes |
-| **Denoise** | Any video | Same format | hqdn3d/nlmeans filter | Yes |
-| **Blur/Pixelate** | Any video | Same format | Visual selection + boxblur/scale | Yes |
-| **Auto Blur Faces** | Any video | Same format | MediaPipe AI + frame-by-frame | Yes |
-| **Picture-in-Picture** | Two videos | Same format | overlay filter | Yes |
-| **Stabilize** | Any video | Same format | vidstab (two-pass) | Yes |
-| **Add Watermark** | Any video | Same format | Overlay filter | Yes |
-| **Extract Frames** | Any video | PNG/JPG images | Frame extraction | N/A |
-| **To GIF** | Any video | Animated GIF | 2-pass palette optimization | Yes |
-| **Background Removal** | Image/Video | PNG/WebM/MP4 | rembg AI (U2-Net) | Yes |
-| **Brainrot Captions** | Any video | Same format | Whisper + ASS subtitles | Yes |
-| **Auto-Dubbing** | Any video | Same format | Whisper + Piper TTS | Yes |
-| **Video Upscaling** | Any video | Same format | Real-ESRGAN / FFmpeg scale | Yes |
-
-### Audio Operations
-
-| Operation | Input | Output | Notes |
-|-----------|-------|--------|-------|
-| **Extract** | Video with audio | MP3, FLAC, WAV | Preserves original quality for FLAC/WAV |
-| **Remove** | Video with audio | Silent video | Stream copy (fast, no re-encoding) |
-| **Merge** | Video + Audio file | Video with new audio | Replace or mix audio tracks |
-| **Adjust Volume** | Video/Audio | Same format | Presets, multiplier, or dB value |
-| **Audio Fade** | Video/Audio | Same format | 6 curve types (linear, log, exp, sine) |
-| **Normalize** | Video/Audio | Same format | EBU R128, Peak, RMS, Dynamic |
-| **Visualizer** | Audio/Video | MP4 video | Spectrum, Waveform, CQT, Vector Scope |
-| **Convert** | Audio file | MP3, FLAC, WAV | Bitrate selection for MP3 |
-
-### Subtitle Generation
-
-| Model | Size | Speed | Accuracy | Languages |
-|-------|------|-------|----------|-----------|
-| `tiny.en` | ~75 MB | Fastest | Good | English only |
-| `base.en` | ~150 MB | Fast | Better | English only |
-| `small.en` | ~500 MB | Balanced | Great | English only |
-| `medium.en` | ~1.5 GB | Slower | Excellent | English only |
-| `small` | ~500 MB | Balanced | Great | 99+ languages |
-| `medium` | ~1.5 GB | Slower | Excellent | 99+ languages |
-| `large-v3` | ~3 GB | Slowest | Best | 99+ languages |
-
-**Output Options:**
-| Type | File Extension | Description |
-|------|----------------|-------------|
-| Sidecar | `.srt` | SubRip - most compatible format |
-| Sidecar | `.vtt` | WebVTT - for web/HTML5 players |
-| Sidecar | `.txt` | Plain text transcript |
-| Sidecar | `.lrc` | Lyrics format with timestamps |
-| Soft Subs | `.mp4/.mkv` | Embedded, toggleable in players |
-| Hard Subs | `.mp4/.mkv` | Burned in, always visible |
-
-### Image Operations
-
-| Operation | Options | Notes |
-|-----------|---------|-------|
-| **Convert** | JPG, PNG, WebP, BMP, TIFF | Quality presets (95%, 80%, 60%) |
-| **Resize** | Custom width/height | Use `-1` to preserve aspect ratio |
-| **Rotate** | 90° CW, 90° CCW, 180° | Lossless rotation |
-| **Flip** | Horizontal, Vertical | Mirror image |
-| **Crop** | Visual selection | Interactive GUI with preview |
-| **Adjust Colors** | Brightness, contrast, saturation, gamma | 8 presets + custom mode |
-| **Blur / Sharpen** | 4 blur levels, 3 sharpen levels | Gaussian blur, unsharp mask |
-| **Effects** | Grayscale, Sepia, Invert | One-click color effects |
-| **Add Border** | Custom size, 7 colors + hex | Equal or custom padding |
-| **Add Text** | 7 positions, custom font/color | Shadow, outline, background box styles |
-| **Compress** | Quality 40-90% | Auto format conversion |
-
-### AI Features
-
-| Feature | Description | Models/Options |
-|---------|-------------|----------------|
-| **Subtitles** | AI speech-to-text transcription | Whisper tiny to large-v3, 99+ languages |
-| **Brainrot Captions** | TikTok-style animated captions | 5 styles, word-by-word sync |
-| **Auto-Dubbing** | Translate and re-voice video | 24 languages, multiple voices per language |
-| **Music Separation** | Isolate vocals/instruments | Demucs 2/4/6 stems, MP3/FLAC/WAV output |
-| **Background Removal** | Remove background from image/video | Transparent, green screen, solid color |
-| **Face Blur** | Auto-detect and blur faces | MediaPipe AI or OpenCV Haar |
-| **Video Upscaling** | AI super-resolution | Real-ESRGAN 7 models, FFmpeg fast mode |
-
-### Supported Formats
-
-| Type | Supported Formats |
-|------|-------------------|
-| **Video Input** | `.mp4`, `.mkv`, `.avi`, `.mov`, `.webm`, `.flv`, `.wmv`, `.gif` |
-| **Video Output** | `.mp4`, `.mkv`, `.mov`, `.avi`, `.webm`, `.gif` |
-| **Audio Input** | `.mp3`, `.flac`, `.wav`, `.ogg`, `.aac`, `.m4a` |
-| **Audio Output** | `.mp3`, `.flac`, `.wav` |
-| **Image Input** | `.jpg`, `.jpeg`, `.png`, `.webp`, `.bmp`, `.tiff` |
-| **Image Output** | `.jpg`, `.png`, `.webp`, `.bmp`, `.tiff` |
-| **Subtitle Output** | `.srt`, `.vtt`, `.txt`, `.lrc` |
-
-</details>
-
-## Usage
-
-### Prerequisite: Install FFmpeg
-
-> [NOTE]
-> `peg_this` uses a library called `ffmpeg-python` which acts as a controller for the main FFmpeg program. It does not include FFmpeg itself. Therefore, you must have FFmpeg installed on your system and available in your terminal's PATH.
-
-For **macOS** users, the easiest way to install it is with [Homebrew](https://brew.sh/):
-```bash
-brew install ffmpeg
-```
-
-For **Windows** users, you can use a package manager like [Chocolatey](https://chocolatey.org/) or [Scoop](https://scoop.sh/):
-```bash
-# Using Chocolatey
-choco install ffmpeg
-
-# Using Scoop
-scoop install ffmpeg
-```
-
-For other systems, please see the official download page: **[ffmpeg.org/download.html](https://ffmpeg.org/download.html)**
-
-There are three ways to use `peg_this`:
-
-### 1. Pip Install (Recommended)
-This is the easiest way to get started. This will install the core tool with all features.
+FFmpeg is powerful. FFmpeg is also this:
 
 ```bash
-pip install peg_this
+# Crop to 9:16 portrait
+ffmpeg -i input.mp4 -vf "crop=iw*9/16:ih:(iw-iw*9/16)/2:0" -c:v libx264 -crf 23 -preset medium -c:a aac output.mp4
+
+# Extract audio as MP3
+ffmpeg -i input.mp4 -vn -acodec libmp3lame -ab 320k output.mp3
+
+# Compress to 25MB for Discord
+ffmpeg -i input.mp4 -c:v libx264 -b:v $(( 25*8192/$(ffprobe -v error -show_entries format=duration \
+-of csv=p=0 input.mp4 | cut -d. -f1) ))k -pass 1 -f null /dev/null && ffmpeg -i input.mp4 -c:v \
+libx264 -b:v ... -pass 2 output.mp4
+
+# Add subtitles... good luck
 ```
 
-**Optional Heavy AI Features** (not included by default to keep install fast):
-```bash
-# Music Stem Separation (Demucs) - ~1.5GB, requires PyTorch
-pip install peg_this[demucs]
-
-# AI Video Upscaling (Real-ESRGAN) - ~1.5GB, requires PyTorch
-pip install peg_this[upscale]
-
-# Install both
-pip install peg_this[all-ai]
-```
-
-Once installed, you can run the tool from your terminal:
+**peg_this** replaces all of that:
 
 ```bash
 peg_this
 ```
 
-### 2. Download from Release
-If you prefer not to install the package, you can download a pre-built executable from the [Releases](https://github.com/hariharen9/ffmpeg-this/releases/latest) page.
+Pick from a menu. Follow the prompts. No flags, no syntax, no StackOverflow.
 
-1.  Download the executable for your operating system (Windows, macOS, or Linux).
-2.  Place it in a directory with your media files.
-3.  Run the executable directly from your terminal.
+---
 
-### 3. Run from Source
-If you want to run the tool directly from the source code:
+## Get Started in 10 Seconds
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/hariharen9/ffmpeg-this.git
-    cd ffmpeg-this
-    ```
-2.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-3.  **Run the tool:**
-    ```bash
-    python -m src.peg_this.peg_this
-    ```
+```bash
+pip install peg_this
+```
 
-## 🖥️ Graphical User Interface (New!)
+> **Prerequisite:** [FFmpeg](https://ffmpeg.org/download.html) must be installed. `brew install ffmpeg` (macOS) · `choco install ffmpeg` (Windows) · `sudo apt install ffmpeg` (Linux)
 
-**Your Studio in a Shell... now has a Window!**
+<details>
+<summary><b>More install options</b></summary>
 
-We've brought the full power of `peg_this` to the desktop. The entire massive feature set—from AI subtitles and background removal to format conversions and brainrot captions—is now available in a fully hardware-accelerated Graphical User Interface.
+**Optional extras:**
+```bash
+pip install peg_this[download]     # yt-dlp download engine
+pip install peg_this[demucs]       # AI music stem separation (~1.5GB)
+pip install peg_this[upscale]      # AI video upscaling (~1.5GB)
+pip install peg_this[all-ai,download]  # Everything
+```
 
-Enjoy the same robust FFmpeg backend with a modern visual workflow. Whether you're a terminal warrior or a mouse-clicker, we've got you covered. Same powerful engine, two ways to drive.
+**From source:**
+```bash
+git clone https://github.com/hariharen9/ffmpeg-this.git && cd ffmpeg-this
+pip install -r requirements.txt
+python -m src.peg_this.peg_this
+```
 
-### Launching the GUI
-Run the tool with the `--gui` flag:
+**Pre-built binaries:** [Download for Windows / macOS / Linux →](https://github.com/hariharen9/ffmpeg-this/releases/latest)
+
+</details>
+
+---
+
+## What Can It Do?
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 🎬 Video
+
+Convert · Compress · Trim · Crop · Split · Join · Rotate · Flip · Speed · Reverse · Stabilize · Color Grade · Denoise · Watermark · PiP · Loop · Fade · GIF · Change FPS · Change Resolution
+
+</td>
+<td width="50%" valign="top">
+
+### 🤖 AI
+
+Auto Subtitles (99 languages) · Brainrot Captions · Smart Reframe · Face Blur · Background Removal · Video Upscaling (Real-ESRGAN) · Music Stem Separation · Auto-Dubbing (24 languages)
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### 📥 Download
+
+YouTube · TikTok · Twitter · 1000+ sites · Playlists · Audio extraction · Subtitle download · Quality picker · SponsorBlock · Progress bar · Post-download processing
+
+</td>
+<td width="50%" valign="top">
+
+### 🎵 Audio
+
+Extract · Remove · Merge · Volume · Fade · Normalize · Visualizer · Convert · Stem Separation
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### 🖼️ Image
+
+Resize · Rotate · Flip · Crop · Colors · Blur · Sharpen · Effects · Border · Text · Compress · Convert · Background Removal
+
+</td>
+<td width="50%" valign="top">
+
+### 📦 Other
+
+Batch Convert · Slideshow Creator · Metadata Editor · File Inspector · GUI Mode · Configurable Encoding · Hardware Acceleration
+
+</td>
+</tr>
+</table>
+
+---
+
+## CLI Quick Commands
+
+```bash
+peg_this                              # Interactive menu
+peg_this --gui                        # Launch graphical interface (Experimental, beta)
+peg_this -d "https://youtu.be/..."    # Download video (pick quality)
+peg_this -dy "https://youtu.be/..."   # Download instantly (best MP4, no prompts)
+# more to come... This tool is in active development
+```
+
+---
+
+## Spotlight Features
+
+### 📥 Download Engine
+
+Download from **YouTube, TikTok, Twitter, and 1000+ sites** — powered by yt-dlp.
+
+| | |
+|---|---|
+| **Modes** | Single video · Audio only · Playlist · Subtitles · Thumbnail |
+| **Quality** | Up to 4K · MP4/MKV/WebM container picker |
+| **Info Panel** | Title, channel ✓, views, likes, duration, codecs, file size — before you download |
+| **Audio** | MP3 · FLAC · WAV · AAC · Opus · M4A (128k–320k) |
+| **Playlist** | All · First N · Range · Specific items · Auto-numbering |
+| **Advanced** | SponsorBlock · Speed limit · Time range · Cookies · Proxy · Embed metadata |
+| **After Download** | Trim → Compress → Convert → Subtitles — without leaving peg_this |
+
+**One-liner download:**
+```bash
+peg_this -dy "https://youtube.com/watch?v=dQw4w9WgXcQ"
+```
+
+---
+
+### 📐 AI Smart Reframe
+
+Auto-crop **16:9 → 9:16** keeping the subject in frame. Face tracking with smooth cinematic panning.
+
+| Target | Use Case |
+|--------|----------|
+| **9:16** | TikTok · Reels · YouTube Shorts |
+| **1:1** | Instagram Feed · Twitter/X |
+| **4:5** | Instagram Portrait |
+
+> **How:** Samples frames → Haar cascade face detection → Temporal smoothing (EMA) → Per-frame crop → Audio merge. No GPU required.
+
+---
+
+### 💬 AI Subtitles & Captions
+
+Generate subtitles using **Faster-Whisper** with 7 model sizes (tiny → large-v3) in **99+ languages**.
+
+| Output | Description |
+|--------|-------------|
+| `.srt` / `.vtt` / `.txt` / `.lrc` | Sidecar files |
+| Soft subs | Embedded, toggleable in players |
+| Hard subs | Burned permanently into video |
+| Brainrot | TikTok-style word-by-word animated captions |
+
+---
+
+### 🎙️ AI Auto-Dubbing
+
+Translate and re-voice videos into **24+ languages** — transcription, translation, and voice synthesis all run locally.
+
+Spanish · French · German · Italian · Portuguese · Japanese · Chinese · Korean · Russian · Arabic · Hindi · and more
+
+---
+
+### 🚀 AI Video Upscaling
+
+| Mode | Speed | Best For |
+|------|-------|----------|
+| Quick (FFmpeg) | ⚡ Instant | Basic upscaling |
+| Fast AI | 🚀 Fast | General content |
+| Quality AI | 🐢 Slow | Final renders |
+| Anime AI | 🚀 Fast | Animation |
+
+Supports **NVIDIA CUDA**, **Apple Silicon (MPS)**, and CPU.
+
+---
+
+### 🖥️ Graphical Interface
 
 ```bash
 peg_this --gui
 ```
 
-> **Note:** The GUI is currently in **Beta**. It requires `dearpygui` and `opencv-python` (installed automatically).
+The full feature set in a hardware-accelerated desktop GUI. Same engine, visual workflow.
 
-## Subtitle Generation
+> **Beta** — requires `dearpygui` (installed automatically).
 
-The subtitle feature uses [faster-whisper](https://github.com/SYSTRAN/faster-whisper), a fast and accurate speech-to-text engine powered by OpenAI's Whisper model.
+---
 
-### How it works
+<details>
+<summary><h2>📋 Full Feature Reference (100+ operations)</h2></summary>
 
-1. Select a video file
-2. Choose "Generate Subtitles (Whisper)"
-3. Pick a model size (tiny to large-v3)
-4. Select processing mode (Fast or Accurate)
-5. Choose output type:
-   - **Sidecar file**: Export as `.srt`, `.vtt`, `.txt`, or `.lrc`
-   - **Soft subtitles**: Embed into video (can be toggled on/off in players)
-   - **Hard subtitles**: Burn into video (permanent, always visible)
+### Video Operations
 
-### Supported Languages
+| Operation | Method | Re-encode? |
+|-----------|--------|------------|
+| Convert (MP4, MKV, MOV, AVI, WebM) | FFmpeg transcode | Yes |
+| Compress (target size or CRF) | 2-pass encoding | Yes |
+| Change Resolution (4K/1080p/720p/480p/custom) | Scale filter | Yes |
+| Change FPS (24/30/60/120) | fps / minterpolate | Yes |
+| Trim | Stream copy | **No (lossless)** |
+| Crop (visual selection) | crop filter | Yes |
+| Split (equal parts or by duration) | Stream copy or re-encode | Configurable |
+| Join / Concatenate | Concat filter | Yes |
+| Speed (0.25x – 4x) | setpts + atempo | Yes |
+| Reverse | Reverse filter | Yes |
+| Rotate (90°/180°) / Flip | transpose / hflip/vflip | Yes |
+| Fade In/Out (black or white) | fade filter | Yes |
+| Loop (N times or target duration) | stream_loop | **No** |
+| Color Correction | eq filter | Yes |
+| Denoise (fast / quality) | hqdn3d / nlmeans | Yes |
+| Blur/Pixelate Region (visual) | boxblur / scale | Yes |
+| Picture-in-Picture | overlay filter | Yes |
+| Stabilize | vidstab (two-pass) | Yes |
+| Add Watermark (image or text) | overlay filter | Yes |
+| Extract Frames | Frame extraction | N/A |
+| Create GIF | 2-pass palette | Yes |
+| Smart Reframe (AI) | Haar face tracking + crop | Yes |
+| Background Removal (AI) | rembg (U2-Net) | Yes |
+| Brainrot Captions (AI) | Whisper + ASS | Yes |
+| Auto-Dubbing (AI) | Whisper + Piper TTS | Yes |
+| Video Upscaling (AI) | Real-ESRGAN | Yes |
 
-Using multilingual models (`small`, `medium`, `large-v3`), you can transcribe audio in 99+ languages including English, Spanish, French, German, Chinese, Japanese, Korean, Hindi, Arabic, and many more.
+### Audio Operations
 
-## AI Auto-Dubbing
+| Operation | Notes |
+|-----------|-------|
+| Extract from video | MP3, FLAC, WAV |
+| Remove from video | Stream copy (fast) |
+| Merge with video | Replace or mix |
+| Adjust Volume | Presets, dB, multiplier |
+| Fade In/Out | 6 curve types |
+| Normalize | EBU R128, Peak, RMS, Dynamic |
+| Visualizer | Spectrum, Waveform, CQT |
+| Convert format | MP3, FLAC, WAV |
+| Stem Separation (AI) | Vocals, drums, bass, other (Demucs) |
 
-Automatically translate and re-voice your videos into 24+ languages using AI.
+### Image Operations
 
-### How it works
+| Operation | Options |
+|-----------|---------|
+| Convert | JPG, PNG, WebP, BMP, TIFF |
+| Resize | Custom dimensions, preserve aspect ratio |
+| Rotate / Flip | 90° CW/CCW, 180°, horizontal, vertical |
+| Crop | Visual interactive selection |
+| Adjust Colors | Brightness, contrast, saturation, gamma (8 presets) |
+| Blur / Sharpen | 4 blur levels, 3 sharpen levels |
+| Effects | Grayscale, sepia, invert |
+| Add Border | Custom size, 7 colors + hex |
+| Add Text | 7 positions, font, color, shadow/outline |
+| Compress | Quality 40-90%, auto format conversion |
 
-1. Select a video file
-2. Choose "AI Auto-Dubbing"
-3. Select target language (Spanish, French, German, Japanese, etc.)
-4. Choose a voice (multiple male/female options per language)
-5. Set original audio volume (mute, quiet, or mix)
+### Subtitle Models
 
-### Supported Languages
+| Model | Size | Speed | Languages |
+|-------|------|-------|-----------|
+| `tiny.en` | ~75 MB | Fastest | English |
+| `base.en` | ~150 MB | Fast | English |
+| `small.en` | ~500 MB | Balanced | English |
+| `medium.en` | ~1.5 GB | Slower | English |
+| `small` | ~500 MB | Balanced | 99+ |
+| `medium` | ~1.5 GB | Slower | 99+ |
+| `large-v3` | ~3 GB | Slowest | 99+ |
 
-| Language | Voices Available |
-|----------|------------------|
-| Spanish (ES/MX) | 3 voices |
-| French | 2 voices |
-| German | 2 voices |
-| Italian | 2 voices |
-| Portuguese (BR/PT) | 2 voices |
-| Japanese | 2 voices |
-| Chinese | 2 voices |
-| Korean | 1 voice |
-| Russian | 2 voices |
-| Arabic | 1 voice |
-| Hindi | 1 voice |
-| And 13 more... | Various |
+### Supported Formats
 
-> **Note:** Uses Whisper for transcription, deep-translator for translation, and Piper TTS for voice synthesis. All processing runs locally.
+| Type | Formats |
+|------|---------|
+| Video In | `.mp4` `.mkv` `.avi` `.mov` `.webm` `.flv` `.wmv` `.gif` |
+| Video Out | `.mp4` `.mkv` `.mov` `.avi` `.webm` `.gif` |
+| Audio In | `.mp3` `.flac` `.wav` `.ogg` `.aac` `.m4a` |
+| Audio Out | `.mp3` `.flac` `.wav` |
+| Image | `.jpg` `.png` `.webp` `.bmp` `.tiff` |
+| Subtitle | `.srt` `.vtt` `.txt` `.lrc` |
 
-## AI Video Upscaling
+</details>
 
-Enhance video resolution using AI super-resolution or fast FFmpeg scaling.
-
-### Modes
-
-| Mode | Speed | Quality | Use Case |
-|------|-------|---------|----------|
-| **Quick (FFmpeg)** | ⚡ Fastest | Good | Basic upscaling, large files |
-| **Fast AI** | 🚀 Fast | Great | General purpose, balanced |
-| **Quality AI** | 🐢 Slow | Best | Final renders, quality priority |
-| **Anime AI** | 🚀 Fast | Best for animation | Cartoons, anime content |
-
-### AI Models (Real-ESRGAN)
-
-| Model | Scale | Speed | Best For |
-|-------|-------|-------|----------|
-| `RealESRGAN_x2plus` | 2x | Fastest | 1080p → 4K |
-| `realesr-general-x4v3` | 4x | Fast | General content |
-| `RealESRGAN_x4plus` | 4x | Slow | Maximum quality |
-| `realesr-animevideov3` | 4x | Fast | Anime/cartoons |
-
-> **Hardware:** Supports NVIDIA CUDA, Apple Silicon (MPS), and CPU. GPU recommended for reasonable speeds.
+---
 
 ## Star History
 
@@ -406,7 +361,7 @@ Contributions are welcome! Please see the [Contributing Guidelines](CONTRIBUTING
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT License. See [LICENSE](LICENSE) for details.
 
 <p align="center">
     Made with ❤️ by <a href="https://hariharen.site">Hariharen</a>
