@@ -402,7 +402,39 @@ def reverse_video(file_path):
         return
 
     duration = get_video_duration(file_path)
-    if duration > 60:
+
+    # Estimate RAM usage: reverse filter loads all decoded frames into memory
+    # Uncompressed YUV420 = width * height * 1.5 bytes per frame
+    estimated_ram_gb = 0
+    try:
+        probe = ffmpeg.probe(file_path, select_streams='v')
+        vs = probe['streams'][0]
+        w = int(vs.get('width', 1920))
+        h = int(vs.get('height', 1080))
+        r_frame_rate = vs.get('r_frame_rate', '30/1')
+        num, den = map(int, r_frame_rate.split('/'))
+        fps = num / den if den != 0 else 30
+        frame_bytes = w * h * 1.5  # YUV420
+        total_frames = duration * fps
+        estimated_ram_gb = (frame_bytes * total_frames) / (1024 ** 3)
+    except Exception:
+        pass
+
+    max_ram_gb = 8  # Hard limit
+
+    if estimated_ram_gb > max_ram_gb:
+        console.print(f"[bold red]This video would need ~{estimated_ram_gb:.1f} GB of RAM to reverse.[/bold red]")
+        console.print(f"[dim]{w}x{h} @ {fps:.0f}fps x {format_duration(duration)} = too large for in-memory reverse.[/dim]")
+        console.print("[dim]Trim the video to a shorter segment first, then reverse.[/dim]")
+        press_continue()
+        return
+
+    if estimated_ram_gb > 1:
+        console.print(f"[yellow]Warning: This will use ~{estimated_ram_gb:.1f} GB of RAM.[/yellow]")
+        console.print(f"[dim]{w}x{h} @ {fps:.0f}fps x {format_duration(duration)}[/dim]")
+        if not questionary.confirm("Continue?", default=False).ask():
+            return
+    elif duration > 60:
         console.print(f"[yellow]Warning: This is a {format_duration(duration)} video.[/yellow]")
         console.print("[dim]Reversing long videos requires loading into memory and may be slow.[/dim]")
         if not questionary.confirm("Continue?", default=False).ask():
