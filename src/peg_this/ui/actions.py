@@ -557,12 +557,20 @@ def _do_crop(state, params):
     y = params.get('y', 0)
     w = params.get('w', 100)
     h = params.get('h', 100)
-    
+
+    # Enforce even dimensions — video encoders require them
+    w = w - (w % 2)
+    h = h - (h % 2)
+    if w < 2 or h < 2:
+        state.add_log("Error: Crop dimensions too small (minimum 2x2 even).")
+        return
+
     output_path = get_output_path(state.input_file, "cropped")
     if not confirm_overwrite(state, output_path): return
     state.add_log(f"Cropping: x={x} y={y} w={w} h={h}")
-    
-    stream = ffmpeg.input(state.input_file).crop(x, y, w, h).output(output_path).overwrite_output()
+
+    encoding_args = get_global_encoding_args(crf=23)
+    stream = ffmpeg.input(state.input_file).crop(x, y, w, h).output(output_path, **encoding_args).overwrite_output()
     run_command(stream, description="Cropping...", show_progress=True)
 
 def _do_resize(state, params):
