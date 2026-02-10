@@ -548,79 +548,51 @@ def main_menu():
             console.print("[dim italic]Built with ❤️ by [link=https://hariharen.site]Hariharen[/link][/dim italic]")
             break
 
-        # --- VIDEO ---
-        elif "Edit (Trim" in choice:
-            video_edit_menu()
-        elif "Convert (Format, Compress, Resolution, FPS" in choice:
-            video_convert_menu()
-        elif "Effects (Speed" in choice:
-            video_effects_menu()
+        # Dispatch table: (substring_key, handler, file_filter)
+        # file_filter=None  → call handler() directly (submenus, no-arg actions)
+        # file_filter="video"/"image" → select file with filter, call handler(file_path)
+        # file_filter="any" → select file without filter, call handler(file_path)
+        dispatch = [
+            # VIDEO
+            ("Edit (Trim",                                video_edit_menu,    None),
+            ("Convert (Format, Compress, Resolution, FPS", video_convert_menu, None),
+            ("Effects (Speed",                            video_effects_menu, None),
+            # IMAGE
+            ("Transform (Resize",                         image_transform_menu, None),
+            ("Adjust (Colors",                            image_adjust_menu,  None),
+            ("Add (Border",                               image_add_menu,     None),
+            ("Convert (Format, Compress)",                image_convert_menu, None),
+            # AUDIO
+            ("Edit (Extract",                             audio_edit_menu,    None),
+            ("Adjust (Volume",                            audio_adjust_menu,  None),
+            ("Convert (Format)",                          audio_convert_menu, None),
+            ("Visualizer",                                audio_visualizer,   "any"),
+            # AI
+            ("Subtitles (Whisper)",                       generate_subtitles, "video"),
+            ("Brainrot",                                  brainrot_captions,  "video"),
+            ("Auto-Dubbing",                              auto_dub,           "video"),
+            ("Separate Music Stems",                      separate_stems,     "any"),
+            ("Background Removal",                        remove_background,  "any"),
+            ("Blur Faces",                                auto_blur_faces,    "video"),
+            ("Upscaling",                                 upscale_video,      "video"),
+            # OTHER
+            ("Slideshow",                                 create_slideshow,   None),
+            ("Metadata",                                  metadata_editor,    "any"),
+            ("Batch",                                     batch_convert,      None),
+            ("Inspect",                                   inspect_menu,       None),
+            ("Settings",                                  settings_menu,      None),
+        ]
 
-        # --- IMAGE ---
-        elif "Transform (Resize" in choice:
-            image_transform_menu()
-        elif "Adjust (Colors" in choice:
-            image_adjust_menu()
-        elif "Add (Border" in choice:
-            image_add_menu()
-        elif "Convert (Format, Compress)" in choice:
-            image_convert_menu()
-
-        # --- AUDIO ---
-        elif "Edit (Extract" in choice:
-            audio_edit_menu()
-        elif "Adjust (Volume" in choice:
-            audio_adjust_menu()
-        elif "Convert (Format)" in choice:
-            audio_convert_menu()
-        elif "Visualizer" in choice:
-            file_path = select_media_file()
-            if file_path:
-                audio_visualizer(file_path)
-
-        # --- AI ---
-        elif "Subtitles (Whisper)" in choice:
-            file_path = select_media_file(filter_type="video")
-            if file_path:
-                generate_subtitles(file_path)
-        elif "Brainrot" in choice:
-            file_path = select_media_file(filter_type="video")
-            if file_path:
-                brainrot_captions(file_path)
-        elif "Auto-Dubbing" in choice:
-            file_path = select_media_file(filter_type="video")
-            if file_path:
-                auto_dub(file_path)
-        elif "Separate Music Stems" in choice:
-            file_path = select_media_file()
-            if file_path:
-                separate_stems(file_path)
-        elif "Background Removal" in choice:
-            file_path = select_media_file()
-            if file_path:
-                remove_background(file_path)
-        elif "Blur Faces" in choice:
-            file_path = select_media_file(filter_type="video")
-            if file_path:
-                auto_blur_faces(file_path)
-        elif "Upscaling" in choice:
-            file_path = select_media_file(filter_type="video")
-            if file_path:
-                upscale_video(file_path)
-
-        # --- OTHER ---
-        elif "Slideshow" in choice:
-            create_slideshow()
-        elif "Metadata" in choice:
-            file_path = select_media_file()
-            if file_path:
-                metadata_editor(file_path)
-        elif "Batch" in choice:
-            batch_convert()
-        elif "Inspect" in choice:
-            inspect_menu()
-        elif "Settings" in choice:
-            settings_menu()
+        for key, handler, file_filter in dispatch:
+            if key in choice:
+                if file_filter is None:
+                    handler()
+                else:
+                    kw = {"filter_type": file_filter} if file_filter != "any" else {}
+                    file_path = select_media_file(**kw)
+                    if file_path:
+                        handler(file_path)
+                break
 
 
 import argparse
