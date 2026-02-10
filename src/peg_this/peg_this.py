@@ -28,6 +28,7 @@ from peg_this.features.trim import trim_video
 from peg_this.features.advanced import create_slideshow, metadata_editor, stabilize_video, create_gif_advanced
 from peg_this.features.music_separation import separate_stems
 from peg_this.features.upscale import upscale_video
+from peg_this.features.download import download_media
 from peg_this.settings import settings_menu
 from peg_this.utils.ffmpeg_utils import check_ffmpeg_ffprobe
 from peg_this.utils.ui_utils import select_media_file
@@ -529,6 +530,7 @@ def main_menu():
                 "👤  Auto Blur Faces",
                 "🚀  Video Upscaling",
                 questionary.Separator("─────── Other ───────"),
+                "🌐  Download (yt-dlp)",
                 "🎬  Create Slideshow",
                 "📝  Metadata Editor",
                 "📦  Batch Convert",
@@ -576,6 +578,7 @@ def main_menu():
             ("Blur Faces",                                auto_blur_faces,    "video"),
             ("Upscaling",                                 upscale_video,      "video"),
             # OTHER
+            ("Download",                                 download_media,     None),
             ("Slideshow",                                 create_slideshow,   None),
             ("Metadata",                                  metadata_editor,    "any"),
             ("Batch",                                     batch_convert,      None),
@@ -600,6 +603,8 @@ import argparse
 def main():
     parser = argparse.ArgumentParser(description="FFMPEG-this: Your Studio in a Shell")
     parser.add_argument("--gui", action="store_true", help="Launch the experimental Graphical User Interface")
+    parser.add_argument("-d", "--download", metavar="URL", help="Download a video directly from a URL")
+    parser.add_argument("-dy", "--download-yolo", metavar="URL", help="Download best quality MP4 instantly, no prompts")
     args, unknown = parser.parse_known_args()
 
     if args.gui:
@@ -614,6 +619,28 @@ def main():
             logging.exception("GUI crashed.")
             console.print(f"[bold red]GUI Error: {e}[/bold red]")
             sys.exit(1)
+        return
+
+    if args.download:
+        try:
+            from peg_this.features.download import download_url
+            download_url(args.download)
+        except (KeyboardInterrupt, EOFError):
+            console.print("\n[bold]Operation cancelled. Goodbye![/bold]")
+        except Exception as e:
+            logging.exception("Download failed.")
+            console.print(f"[bold red]Download error: {e}[/bold red]")
+        return
+
+    if args.download_yolo:
+        try:
+            from peg_this.features.download import download_url_quick
+            download_url_quick(args.download_yolo)
+        except (KeyboardInterrupt, EOFError):
+            console.print("\n[bold]Operation cancelled. Goodbye![/bold]")
+        except Exception as e:
+            logging.exception("Download failed.")
+            console.print(f"[bold red]Download error: {e}[/bold red]")
         return
 
     try:

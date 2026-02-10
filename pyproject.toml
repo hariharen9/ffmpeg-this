@@ -48,6 +48,7 @@ dependencies = [
 # Heavy AI features (~1.5GB each, includes PyTorch)
 demucs = ["demucs>=4.0.0"]
 upscale = ["realesrgan>=0.3.0", "basicsr>=1.4.2"]
+download = ["yt-dlp>=2024.0.0"]
 all-ai = ["demucs>=4.0.0", "realesrgan>=0.3.0", "basicsr>=1.4.2"]
 
 dev = [
