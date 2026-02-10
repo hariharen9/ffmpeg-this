@@ -29,6 +29,7 @@ from peg_this.features.advanced import create_slideshow, metadata_editor, stabil
 from peg_this.features.music_separation import separate_stems
 from peg_this.features.upscale import upscale_video
 from peg_this.features.download import download_media
+from peg_this.features.reframe import smart_reframe
 from peg_this.settings import settings_menu
 from peg_this.utils.ffmpeg_utils import check_ffmpeg_ffprobe
 from peg_this.utils.ui_utils import select_media_file
@@ -529,6 +530,7 @@ def main_menu():
                 "🧠  Background Removal",
                 "👤  Auto Blur Faces",
                 "🚀  Video Upscaling",
+                "📐  Smart Reframe (AI Crop)",
                 questionary.Separator("─────── Other ───────"),
                 "🌐  Download (yt-dlp)",
                 "🎬  Create Slideshow",
@@ -577,6 +579,7 @@ def main_menu():
             ("Background Removal",                        remove_background,  "any"),
             ("Blur Faces",                                auto_blur_faces,    "video"),
             ("Upscaling",                                 upscale_video,      "video"),
+            ("Smart Reframe",                            smart_reframe,      "video"),
             # OTHER
             ("Download",                                 download_media,     None),
             ("Slideshow",                                 create_slideshow,   None),
