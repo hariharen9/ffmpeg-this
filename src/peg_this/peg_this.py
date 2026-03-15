@@ -25,6 +25,7 @@ from peg_this.features.speed import change_speed, reverse_video, smooth_slow_mot
 from peg_this.features.subtitle import generate_subtitles, brainrot_captions
 from peg_this.features.dubbing import auto_dub
 from peg_this.features.trim import trim_video
+from peg_this.features.chop import chop_middle
 from peg_this.features.advanced import create_slideshow, metadata_editor, stabilize_video, create_gif_advanced
 from peg_this.features.music_separation import separate_stems
 from peg_this.features.upscale import upscale_video
@@ -44,7 +45,7 @@ logging.basicConfig(
 )
 
 console = Console()
-VERSION = "5.1.0"
+VERSION = "5.2.0"
 
 LOGO = """[bold magenta]
    ██████╗ ███████╗ ██████╗       ████████╗██╗  ██╗██╗███████╗
@@ -151,6 +152,7 @@ def video_edit_menu():
         "Select an edit action:",
         choices=[
             "Trim Video",
+            "Chop Middle (Lossless)",
             "Crop Video (Visual)",
             "Split Video",
             "Join Multiple Videos",
@@ -173,6 +175,7 @@ def video_edit_menu():
 
     actions = {
         "Trim Video": trim_video,
+        "Chop Middle (Lossless)": chop_middle,
         "Crop Video (Visual)": crop_video,
         "Split Video": split_video,
         "Extract Frames": extract_frames,
