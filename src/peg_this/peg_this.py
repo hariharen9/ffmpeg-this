@@ -22,6 +22,7 @@ from peg_this.features.frames import extract_frames, split_video
 from peg_this.features.inspect import inspect_file
 from peg_this.features.join import join_videos
 from peg_this.features.speed import change_speed, reverse_video, smooth_slow_motion, change_fps
+from peg_this.features.speed_ramp import partial_speed_adjustment
 from peg_this.features.subtitle import generate_subtitles, brainrot_captions
 from peg_this.features.dubbing import auto_dub
 from peg_this.features.trim import trim_video
@@ -45,7 +46,7 @@ logging.basicConfig(
 )
 
 console = Console()
-VERSION = "5.2.0"
+VERSION = "5.2.1"
 
 LOGO = """[bold magenta]
    ██████╗ ███████╗ ██████╗       ████████╗██╗  ██╗██╗███████╗
@@ -222,7 +223,8 @@ def video_effects_menu():
     action = select_with_back(
         "Select an effect:",
         choices=[
-            "Change Speed",
+            "Change Speed (Entire Video)",
+            "Change Speed (Partial / Ramp)",
             "Smooth Slow Motion (Optical Flow)",
             "Reverse Video",
             "Rotate / Flip",
@@ -269,7 +271,8 @@ def video_effects_menu():
         return
 
     actions = {
-        "Change Speed": change_speed,
+        "Change Speed (Entire Video)": change_speed,
+        "Change Speed (Partial / Ramp)": partial_speed_adjustment,
         "Smooth Slow Motion (Optical Flow)": smooth_slow_motion,
         "Reverse Video": reverse_video,
         "Add Watermark": add_watermark,
