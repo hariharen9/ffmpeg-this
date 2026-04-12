@@ -136,6 +136,122 @@ def run_command(stream_spec, description="Processing...", show_progress=False):
         return True
 
 
+def run_command_list(cmd, description="Processing...", show_progress=False, input_file=None):
+    """
+    Run a raw FFmpeg command list with the same progress/error UX as run_command().
+
+    Use this when ffmpeg-python stream objects can't express the command
+    (e.g. concat demuxer, multi-pass, complex filter_complex strings, -map flags).
+
+    Args:
+        cmd:           Full command as a list, e.g. ['ffmpeg', '-y', '-i', ...].
+        description:   Label shown in terminal during execution.
+        show_progress: If True, parse stderr for time= and show a progress bar.
+        input_file:    Path to probe for total duration (for progress %).
+                       If None, tries to auto-detect from the -i flag in cmd.
+
+    Returns:
+        True on success, False on failure.
+    """
+    console.print(f"[bold cyan]{description}[/bold cyan]")
+    logging.info(f"Executing command: {' '.join(cmd)}")
+
+    if not show_progress:
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+            )
+            if result.returncode == 0:
+                logging.info("Command successful (no progress bar).")
+                return True
+            else:
+                console.print("[bold red]An error occurred:[/bold red]")
+                if result.stderr:
+                    # Show last 500 chars of stderr for context
+                    console.print(f"[dim]{result.stderr[-500:]}[/dim]")
+                logging.error(f"ffmpeg error: {result.stderr}")
+                return False
+        except Exception as e:
+            console.print(f"[bold red]Failed to execute command: {e}[/bold red]")
+            logging.error(f"Command execution failed: {e}")
+            return False
+
+    # --- Progress bar mode ---
+    duration = 0
+    # Determine input file for probing duration
+    probe_path = input_file
+    if not probe_path:
+        for i, arg in enumerate(cmd):
+            if arg == '-i' and i + 1 < len(cmd):
+                candidate = cmd[i + 1]
+                # Skip pipe:, lavfi, nullsrc etc.
+                if not candidate.startswith(('pipe:', 'anullsrc')) and '=' not in candidate:
+                    probe_path = candidate
+                    break
+
+    if probe_path:
+        try:
+            probe_info = ffmpeg.probe(probe_path)
+            duration = float(probe_info['format']['duration'])
+        except (ffmpeg.Error, KeyError, ValueError):
+            logging.warning(f"Could not probe duration from {probe_path}")
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        console=console,
+    ) as progress:
+        task = progress.add_task(description, total=100)
+
+        try:
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+                encoding='utf-8',
+            )
+        except FileNotFoundError:
+            console.print("[bold red]Error: ffmpeg not found. Is it installed and in PATH?[/bold red]")
+            return False
+        except Exception as e:
+            console.print(f"[bold red]Failed to start process: {e}[/bold red]")
+            return False
+
+        stderr_buffer = deque(maxlen=15)
+
+        for line in process.stderr:
+            stderr_buffer.append(line)
+            logging.debug(f"ffmpeg stderr: {line.strip()}")
+            if "time=" in line and duration > 0:
+                try:
+                    time_str = line.split("time=")[1].split(" ")[0].strip()
+                    h, m, s_parts = time_str.split(':')
+                    s = float(s_parts)
+                    elapsed_time = int(h) * 3600 + int(m) * 60 + s
+                    percent_complete = (elapsed_time / duration) * 100
+                    progress.update(task, completed=min(percent_complete, 100))
+                except Exception:
+                    pass
+
+        process.wait()
+        progress.update(task, completed=100)
+
+        if process.returncode != 0:
+            console.print("[bold red]An error occurred:[/bold red]")
+            console.print("".join(stderr_buffer))
+            logging.error(f"Command failed (exit {process.returncode})")
+            return False
+
+    logging.info("Command successful (with progress bar).")
+    return True
+
+
 def has_audio_stream(file_path):
     """Check if the media file has an audio stream."""
     try:

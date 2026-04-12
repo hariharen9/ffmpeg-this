@@ -3,7 +3,6 @@ AI Smart Reframe — auto-crop landscape video to portrait/square
 using face tracking to keep the subject in frame.
 """
 import os
-import subprocess
 import tempfile
 from pathlib import Path
 
@@ -18,7 +17,7 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-from peg_this.utils.ffmpeg_utils import has_audio_stream
+from peg_this.utils.ffmpeg_utils import has_audio_stream, run_command_list
 from peg_this.utils.validation import (
     check_output_file,
     press_continue,
@@ -285,12 +284,7 @@ def _render_reframed(file_path, crop_positions, crop_w, crop_h, fps, final_outpu
             merge_cmd.extend(encoding_args)
             merge_cmd.append(final_output)
 
-        result = subprocess.run(merge_cmd, capture_output=True, text=True)
-
-        if result.returncode != 0:
-            console.print("[bold red]Error encoding final video.[/bold red]")
-            if result.stderr:
-                console.print(f"[dim]{result.stderr[-300:]}[/dim]")
+        if not run_command_list(merge_cmd, "Encoding final output...", show_progress=True, input_file=file_path):
             return False
 
         return True

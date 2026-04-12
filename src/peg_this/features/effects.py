@@ -5,7 +5,7 @@ import ffmpeg
 import questionary
 from rich.console import Console
 
-from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream, get_global_encoding_args
+from peg_this.utils.ffmpeg_utils import run_command, run_command_list, has_audio_stream, get_global_encoding_args
 from peg_this.utils.validation import (
     validate_input_file, check_output_file, check_disk_space, press_continue,
     get_video_duration, format_duration, validate_time_input, check_has_video_stream
@@ -1104,27 +1104,10 @@ def blur_region(file_path):
 
         cmd.append(final_output)
 
-        console.print(f"[bold cyan]Applying {'blur' if is_blur else 'pixelate'} to {valid_region_count} region(s)...[/bold cyan]")
-
-        # Debug: show filter info
-        console.print(f"[dim]Video: {video_width}x{video_height}[/dim]")
-        for i, region in enumerate(regions):
-            console.print(f"[dim]Region {i+1}: x={region['x']}, y={region['y']}, w={region['w']}, h={region['h']}[/dim]")
-
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        if result.returncode == 0:
+        if run_command_list(cmd, f"Applying {'blur' if is_blur else 'pixelate'} to {valid_region_count} region(s)...", show_progress=True, input_file=file_path):
             console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
         else:
             console.print("[bold red]Failed to apply effect.[/bold red]")
-            if result.stderr:
-                error_lines = result.stderr.strip().split('\n')
-                error_found = [l for l in error_lines if 'Error' in l or 'error' in l or 'Invalid' in l]
-                if error_found:
-                    error_msg = '\n'.join(error_found[-3:])
-                else:
-                    error_msg = '\n'.join(error_lines[-5:])
-                console.print(f"[dim]{error_msg}[/dim]")
 
     except Exception as e:
         console.print(f"[bold red]An error occurred: {e}[/bold red]")
@@ -1422,15 +1405,8 @@ def auto_blur_faces(file_path):
             return
 
         # Merge with original audio using FFmpeg
-        console.print("[bold cyan]Merging audio...[/bold cyan]")
-
-        from peg_this.settings import Settings
-        settings = Settings()
-        encoding_args = settings.get_encoder_list_args(quality="medium", crf=18)
-
         if has_audio_stream(file_path):
             # Combine processed video with original audio
-            import subprocess
             merge_cmd = [
                 'ffmpeg', '-y',
                 '-i', temp_video,
@@ -1443,16 +1419,13 @@ def auto_blur_faces(file_path):
                 '-shortest',
                 final_output
             ])
-            result = subprocess.run(merge_cmd, capture_output=True, text=True)
-
-            if result.returncode != 0:
+            
+            if not run_command_list(merge_cmd, "Merging audio...", show_progress=True, input_file=temp_video):
                 console.print("[bold red]Error merging audio.[/bold red]")
-                console.print(f"[dim]{result.stderr[-300:] if result.stderr else 'Unknown error'}[/dim]")
             else:
                 console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
         else:
             # No audio, just re-encode with better codec
-            import subprocess
             encode_cmd = [
                 'ffmpeg', '-y',
                 '-i', temp_video,
@@ -1460,12 +1433,10 @@ def auto_blur_faces(file_path):
             encode_cmd.extend(encoding_args)
             encode_cmd.append(final_output)
 
-            result = subprocess.run(encode_cmd, capture_output=True, text=True)
-
-            if result.returncode == 0:
-                console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
-            else:
+            if not run_command_list(encode_cmd, "Encoding video...", show_progress=True, input_file=temp_video):
                 console.print("[bold red]Error encoding video.[/bold red]")
+            else:
+                console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
 
     except Exception as e:
         console.print(f"[bold red]An error occurred: {e}[/bold red]")
@@ -1729,22 +1700,10 @@ def audio_visualizer(file_path):
     cmd.extend(['-r', '30'])
     cmd.append(final_output)
 
-    console.print(f"[bold cyan]Generating {style.split(' (')[0]} visualization...[/bold cyan]")
-    console.print("[dim]This may take a while for long audio files.[/dim]")
-
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
-    if result.returncode == 0:
+    if run_command_list(cmd, f"Generating {style.split(' (')[0]} visualization...", show_progress=True, input_file=file_path):
         console.print(f"[bold green]Successfully created {final_output}[/bold green]")
     else:
         console.print("[bold red]Failed to create visualization.[/bold red]")
-        if result.stderr:
-            error_lines = result.stderr.strip().split('\n')
-            error_found = [l for l in error_lines if 'Error' in l or 'error' in l]
-            if error_found:
-                console.print(f"[dim]{error_found[-1]}[/dim]")
-            else:
-                console.print(f"[dim]{error_lines[-3:]}[/dim]")
 
     press_continue()
 
@@ -2257,15 +2216,10 @@ def remove_background_video(file_path):
             cmd_with_audio.extend(['-c:a', 'copy', '-shortest', final_output])
             cmd = cmd_with_audio
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        if result.returncode == 0:
+        if run_command_list(cmd, "Encoding transparent background output...", show_progress=True):
             console.print(f"[bold green]Successfully saved to {final_output}[/bold green]")
         else:
             console.print("[bold red]Failed to create output video.[/bold red]")
-            if result.stderr:
-                error_lines = result.stderr.strip().split('\n')[-3:]
-                console.print(f"[dim]{' '.join(error_lines)}[/dim]")
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Operation cancelled by user.[/yellow]")

@@ -7,7 +7,7 @@ import questionary
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
 
-from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream, get_global_encoding_args
+from peg_this.utils.ffmpeg_utils import run_command, run_command_list, has_audio_stream, get_global_encoding_args
 from peg_this.settings import Settings
 from peg_this.utils.validation import (
     validate_input_file, check_output_file, check_disk_space,
@@ -745,16 +745,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             final_output
         ])
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        if result.returncode == 0:
+        if run_command_list(cmd, "Burning captions into video...", show_progress=True, input_file=file_path):
             console.print(f"[bold green]Successfully created {final_output}[/bold green]")
         else:
             console.print("[bold red]Failed to burn captions.[/bold red]")
-            if result.stderr:
-                error_lines = result.stderr.strip().split('\n')
-                error_found = [l for l in error_lines if 'Error' in l or 'error' in l]
-                if error_found:
-                    console.print(f"[dim]{error_found[-1]}[/dim]")
 
     press_continue()

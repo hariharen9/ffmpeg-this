@@ -3,13 +3,13 @@
 import os
 import subprocess
 from pathlib import Path
-
+import tempfile
 import ffmpeg
 import questionary
 from rich.console import Console
 from rich.table import Table
 
-from peg_this.utils.ffmpeg_utils import run_command, has_audio_stream, get_global_encoding_args
+from peg_this.utils.ffmpeg_utils import run_command, run_command_list, has_audio_stream, get_global_encoding_args
 from peg_this.settings import Settings
 from peg_this.utils.validation import (
     validate_input_file, check_output_file, press_continue,
@@ -173,15 +173,10 @@ def create_slideshow():
 
         cmd.append(final_output)
 
-        console.print("[bold cyan]Creating slideshow...[/bold cyan]")
-
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        if result.returncode == 0:
+        if run_command_list(cmd, "Creating slideshow...", show_progress=True):
             console.print(f"[bold green]Successfully created {final_output}[/bold green]")
         else:
             console.print("[bold red]Failed to create slideshow.[/bold red]")
-            console.print(f"[dim]{result.stderr[:500]}[/dim]")
 
     finally:
         if os.path.exists(concat_file):
@@ -310,15 +305,10 @@ def metadata_editor(file_path):
 
         cmd.append(final_output)
 
-        console.print("[bold cyan]Updating metadata...[/bold cyan]")
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        if result.returncode == 0:
+        if run_command_list(cmd, "Updating metadata..."):
             console.print(f"[bold green]Saved to {final_output}[/bold green]")
         else:
             console.print("[bold red]Failed to update metadata.[/bold red]")
-            if result.stderr:
-                console.print(f"[dim]{result.stderr[:300]}[/dim]")
 
     elif action == "Copy metadata from another file":
         source_file = questionary.text("Enter path to source file:").ask()
@@ -345,9 +335,7 @@ def metadata_editor(file_path):
             final_output
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        if result.returncode == 0:
+        if run_command_list(cmd, "Copying metadata..."):
             console.print(f"[bold green]Saved to {final_output}[/bold green]")
         else:
             console.print("[bold red]Failed to copy metadata.[/bold red]")
@@ -436,29 +424,26 @@ def stabilize_video(file_path):
     if action_result == 'cancel':
         return
 
-    import tempfile
-    transforms_fd, transforms_file = tempfile.mkstemp(suffix=".trf")
+    # Create temp file in current directory to avoid Windows absolute path parsing bugs in FFmpeg filters
+    transforms_fd, transforms_file = tempfile.mkstemp(suffix=".trf", dir=".")
     os.close(transforms_fd)
+    
+    transforms_filename = os.path.basename(transforms_file)
 
     try:
         # Pass 1: Analyze
-        console.print("[bold cyan]Pass 1: Analyzing video...[/bold cyan]")
         pass1_cmd = [
             'ffmpeg', '-y', '-i', file_path,
-            '-vf', f'vidstabdetect=shakiness={shakiness}:result={transforms_file}',
+            '-vf', f'vidstabdetect=shakiness={shakiness}:result={transforms_filename}',
             '-f', 'null', '-'
         ]
 
-        result1 = subprocess.run(pass1_cmd, capture_output=True, text=True)
-        if result1.returncode != 0:
-            console.print("[bold red]Analysis pass failed.[/bold red]")
+        if not run_command_list(pass1_cmd, "Pass 1: Analyzing video...", show_progress=True, input_file=file_path):
             press_continue()
             return
 
         # Pass 2: Apply stabilization
-        console.print("[bold cyan]Pass 2: Applying stabilization...[/bold cyan]")
-
-        vidstab_filter = f"vidstabtransform=input={transforms_file}:smoothing={smoothing}:zoom={zoom}:optzoom={optzoom}"
+        vidstab_filter = f"vidstabtransform=input={transforms_filename}:smoothing={smoothing}:zoom={zoom}:optzoom={optzoom}"
 
         stabilize_encoding_args = Settings().get_encoder_list_args(quality="high", crf=18)
 
@@ -473,9 +458,7 @@ def stabilize_video(file_path):
 
         pass2_cmd.append(final_output)
 
-        result2 = subprocess.run(pass2_cmd, capture_output=True, text=True)
-
-        if result2.returncode == 0:
+        if run_command_list(pass2_cmd, "Pass 2: Applying stabilization...", show_progress=True, input_file=file_path):
             console.print(f"[bold green]Successfully stabilized: {final_output}[/bold green]")
         else:
             console.print("[bold red]Stabilization failed.[/bold red]")
